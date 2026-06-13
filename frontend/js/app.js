@@ -1,7 +1,7 @@
 // This is app.js File
 
 // ── API Configuration ─────────────────────────────────
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://smarthostel-backend-29gy.onrender.com/api';
 
 async function api(path, options = {}) {
   const token = localStorage.getItem('hostel_token');
