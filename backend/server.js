@@ -1,0 +1,163 @@
+require('dotenv').config();
+const express = require('express');
+const cors    = require('cors');
+const connectDB = require('./config/db');
+
+const authRouter = require('./routes/auth');
+const { usersRouter, roomsRouter, complaintsRouter } = require('./routes/main');
+const { visitorsRouter, feesRouter, announcementsRouter, attendanceRouter } = require('./routes/other');
+const RoomChangeRequest = require('./models/RoomChangeRequest');
+const { protect, authorize } = require('./middleware/auth');
+
+connectDB();
+
+const app = express();
+
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:5500', 'http://localhost:5500'],
+  credentials: true,
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, _res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+  });
+}
+
+// ── All Routes ───────────────────────────────────────────
+app.use('/api/auth',          authRouter);
+app.use('/api/users',         usersRouter);
+app.use('/api/rooms',         roomsRouter);
+app.use('/api/complaints',    complaintsRouter);
+app.use('/api/visitors',      visitorsRouter);
+app.use('/api/fees',          feesRouter);
+app.use('/api/announcements', announcementsRouter);
+app.use('/api/attendance',    attendanceRouter);
+
+// ── Dashboard Stats ──────────────────────────────────────
+app.get('/api/stats', protect, async (req, res) => {
+  try {
+    const User      = require('./models/User');
+    const Room      = require('./models/Room');
+    const Complaint = require('./models/Complaint');
+    const { Visitor, Fee } = require('./models/Other');
+
+    const [students, rooms, complaints, visitors, fees] = await Promise.all([
+      User.countDocuments({ role: 'student' }),
+      Room.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      Complaint.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      Visitor.countDocuments({ status: 'inside' }),
+      Fee.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+    ]);
+
+    const roomMap = rooms.reduce((a, r) => ({ ...a, [r._id]: r.count }), {});
+    const compMap = complaints.reduce((a, c) => ({ ...a, [c._id]: c.count }), {});
+
+    res.json({
+      success: true,
+      data: {
+        students,
+        occupiedRooms:    roomMap.occupied    || 0,
+        availableRooms:   roomMap.available   || 0,
+        maintenanceRooms: roomMap.maintenance || 0,
+        complaints: {
+          pending:    compMap.Pending        || 0,
+          inProgress: compMap['In Progress'] || 0,
+          resolved:   compMap.Resolved       || 0,
+          escalated:  compMap.Escalated      || 0,
+        },
+        visitorsInside: visitors,
+        feesCollected:  fees[0]?.total || 0,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── Health Check ─────────────────────────────────────────
+app.get('/api/health', (_req, res) =>
+  res.json({ status: 'OK', timestamp: new Date().toISOString(), env: process.env.NODE_ENV })
+);
+
+// ── Room Change Requests ──────────────────────────────────
+
+// Student — apni khud ki requests dekhe
+app.get('/api/room-change-requests/my', protect, async (req, res) => {
+  try {
+    const requests = await RoomChangeRequest.find({ student: req.user._id })
+      .populate('reviewedBy', 'name')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, count: requests.length, data: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Student — nai request bhejo
+app.post('/api/room-change-requests', protect, async (req, res) => {
+  try {
+    const user = req.user;
+    const request = await RoomChangeRequest.create({
+      student:        user._id,
+      currentRoom:    user.room  || 'Not assigned',
+      currentBlock:   user.block || '',
+      preferredBlock: req.body.preferredBlock,
+      reason:         req.body.reason,
+      details:        req.body.details || '',
+    });
+    res.status(201).json({ success: true, data: request });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// Warden/Admin — saari requests dekho
+app.get('/api/room-change-requests', protect, authorize('admin','warden'), async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.status) filter.status = req.query.status;
+    const requests = await RoomChangeRequest.find(filter)
+      .populate('student', 'name rollNo room block email phone')
+      .populate('reviewedBy', 'name')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, count: requests.length, data: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Warden/Admin — approve ya reject karo
+app.put('/api/room-change-requests/:id', protect, authorize('admin','warden'), async (req, res) => {
+  try {
+    const { status, reviewNote } = req.body;
+    const request = await RoomChangeRequest.findByIdAndUpdate(
+      req.params.id,
+      { status, reviewNote: reviewNote||'', reviewedBy: req.user._id, reviewedAt: new Date() },
+      { new: true }
+    ).populate('student', 'name rollNo room');
+    res.json({ success: true, data: request });
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ── 404 ── SABSE AAKHIR MEIN ─────────────────────────────
+app.use((_req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
+
+// ── Global Error Handler ─────────────────────────────────
+app.use((err, _req, res, _next) => {
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: 'Internal Server Error' });
+});
+
+// ── Start Server ─────────────────────────────────────────
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+  console.log(`📋 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🌐 API Base: http://localhost:${PORT}/api\n`);
+});

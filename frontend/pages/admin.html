@@ -1,0 +1,1493 @@
+<!-- This is admin.html File -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Admin Dashboard – SmartHostel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="../css/style.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    .page-section { display:none; }
+    .page-section.active { display:block; animation: fadeUp .35s ease forwards; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+    @keyframes shimmer { 0%{background-position:-468px 0} 100%{background-position:468px 0} }
+    .skeleton { background:linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 75%); background-size:800px 100%; animation:shimmer 1.3s linear infinite; border-radius:6px; height:14px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar"><div id="sidebar-logo"></div><nav id="sidebar-nav"></nav><div class="sidebar-bottom" id="sidebar-bottom"></div></div>
+  <div id="main">
+    <div id="topbar"></div>
+    <div id="notif-panel"></div>
+    <div id="content">
+
+      <!-- ══ SECTION 1: Dashboard ══ -->
+      <div id="sec-dashboard" class="page-section active">
+        <div class="stats-grid" id="stats-grid"><div class="loader"><div class="spinner spin"></div></div></div>
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div class="card accent-top-blue">
+            <div class="card-pad">
+              <div class="card-header">
+                <div><div class="card-title">Room Occupancy Trend</div><div class="card-sub">Aug 2024 – Jan 2025</div></div>
+                <span class="badge" style="background:#68d39122;color:#68d391;">Live</span>
+              </div>
+              <div style="height:200px;position:relative;"><canvas id="occupancyChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card accent-top-green">
+            <div class="card-pad">
+              <div class="card-header">
+                <div><div class="card-title">Fee Collection (Rs Lakhs)</div><div class="card-sub">Sep 2024 – Jan 2025</div></div>
+              </div>
+              <div style="height:200px;position:relative;"><canvas id="feeChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="card accent-top-amber">
+            <div class="card-pad">
+              <div class="card-header"><div class="card-title">Complaints Status</div></div>
+              <div style="height:180px;position:relative;"><canvas id="complaintChart"></canvas></div>
+              <div id="complaint-legend" style="margin-top:12px;"></div>
+            </div>
+          </div>
+          <div class="card accent-top-cyan">
+            <div class="card-pad">
+              <div class="card-header"><div class="card-title">Weekly Attendance</div><div class="card-sub">This week</div></div>
+              <div style="height:180px;position:relative;"><canvas id="attendanceChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card accent-top-purple">
+            <div class="card-pad">
+              <div class="card-header"><div class="card-title">Recent Activity</div><span class="badge" style="background:#68d39122;color:#68d391;">Live</span></div>
+              <div id="activity-feed" style="max-height:280px;overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-pad" style="border-bottom:1px solid var(--divider);">
+            <div class="card-header" style="margin-bottom:0;">
+              <div class="card-title">Recent Complaints</div>
+              <button class="btn btn-sm btn-outline-blue" onclick="showSection('complaints')">View All</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Student</th><th>Room</th><th>Issue</th><th>Category</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="complaints-dash-tbody"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px;">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 2: Students ══ -->
+      <div id="sec-students" class="page-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);">Manage Students</h2>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline-green" onclick="exportStudents()">⬇ Excel</button>
+            <button class="btn btn-outline-red" onclick="exportStudentsPDF()">⬇ PDF</button>
+            <button class="btn btn-primary" onclick="openUserModal('student')">+ Add Student</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Roll No</th><th>Email</th><th>Room</th><th>Branch</th><th>Year</th><th>Actions</th></tr></thead>
+              <tbody id="students-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 3: Wardens ══ -->
+      <div id="sec-wardens" class="page-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);">Manage Wardens / Staff</h2>
+          </div>
+          <button class="btn btn-primary" onclick="openUserModal('warden')">+ Add Warden</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>Actions</th></tr></thead>
+              <tbody id="wardens-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 4: Rooms ══ -->
+      <div id="sec-rooms" class="page-section">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+          <h2 style="font-size:18px;font-weight:700;color:var(--text);">Room Management</h2>
+        </div>
+        <div class="card">
+          <div class="card-pad" style="border-bottom:1px solid var(--divider);">
+            <div class="card-header" style="margin-bottom:0;">
+              <div class="card-title">Room Status Grid</div>
+              <div style="display:flex;gap:10px;align-items:center;">
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-sec);"><div style="width:8px;height:8px;border-radius:50%;background:#63b3ed;"></div>Occupied</div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-sec);"><div style="width:8px;height:8px;border-radius:50%;background:#68d391;"></div>Available</div>
+                <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-sec);"><div style="width:8px;height:8px;border-radius:50%;background:#f6c35a;"></div>Maintenance</div>
+              </div>
+            </div>
+          </div>
+          <div id="room-grid" style="padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;"></div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 5: Complaints ══ -->
+      <div id="sec-complaints" class="page-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);">All Complaints</h2>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline-green" onclick="exportComplaints()">⬇ Excel</button>
+            <button class="btn btn-outline-red" onclick="exportComplaintsPDF()">⬇ PDF</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>ID</th><th>Student</th><th>Room</th><th>Issue</th><th>Category</th><th>Priority</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+              <tbody id="complaints-full-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 6: Fees ══ -->
+      <div id="sec-fees" class="page-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);">Fee Management</h2>
+          </div>
+          <button class="btn btn-outline-green" onclick="exportFees()">⬇ Export Excel</button>
+        </div>
+        <div id="fee-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;"></div>
+        <div class="card">
+          <div class="card-pad" style="border-bottom:1px solid var(--divider);"><div class="card-title">Student Fee Status</div></div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Student</th><th>Roll No</th><th>Room</th><th>Status</th></tr></thead>
+              <tbody id="fees-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 7: Announcements ══ -->
+      <div id="sec-announcements" class="page-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);">Notices & Announcements</h2>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('ann-modal').classList.add('open')">+ New Notice</button>
+        </div>
+        <div id="ann-list"></div>
+      </div>
+
+      <!-- ══ SECTION 8: Room Requests ══ -->
+      <div id="sec-room-requests" class="page-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);">Room Change Requests</h2>
+          </div>
+          <span id="rcr-badge" class="badge" style="background:#f6c35a22;color:#f6c35a;font-size:12px;padding:4px 12px;">Loading...</span>
+        </div>
+        <div id="rcr-list"></div>
+      </div>
+
+      <!-- ══ SECTION 9: Reports & Analytics ══ -->
+      <div id="sec-reports" class="page-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);">Reports & Analytics</h2>
+          </div>
+          <button class="btn btn-outline-red" onclick="downloadFullReport()">⬇ Download Full Report (PDF)</button>
+        </div>
+
+        <div id="report-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;"></div>
+
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div class="card accent-top-amber">
+            <div class="card-pad">
+              <div class="card-header"><div class="card-title">Complaints by Category</div></div>
+              <div style="height:240px;position:relative;"><canvas id="repCategoryChart"></canvas></div>
+            </div>
+          </div>
+          <div class="card accent-top-green">
+            <div class="card-pad">
+              <div class="card-header"><div class="card-title">Fee Status Breakdown</div></div>
+              <div style="height:240px;position:relative;"><canvas id="repFeeChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-pad" style="border-bottom:1px solid var(--divider);">
+            <div class="card-header" style="margin-bottom:0;"><div class="card-title">💡 Smart Insights</div><span class="badge" style="background:#7f9cf522;color:#7f9cf5;">Auto-generated</span></div>
+          </div>
+          <div id="report-insights" style="padding:8px 20px 16px;"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Complaint Detail Modal -->
+<div class="modal-overlay" id="complaint-modal">
+  <div class="modal" style="max-width:520px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" style="margin:0;">Complaint Details</div>
+      <div style="cursor:pointer;" onclick="document.getElementById('complaint-modal').classList.remove('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div id="complaint-detail-body"></div>
+  </div>
+</div>
+
+<!-- Add User Modal (Student / Warden) -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" id="user-modal-title" style="margin:0;">Add User</div>
+      <div style="cursor:pointer;" onclick="document.getElementById('user-modal').classList.remove('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:0;">
+      <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" id="u-name" placeholder="e.g. Ali Khan"/></div>
+      <div class="form-group"><label class="form-label">Email *</label><input class="form-input" id="u-email" placeholder="e.g. ali@edu.pk"/></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:0;">
+      <div class="form-group"><label class="form-label">Password *</label><input class="form-input" id="u-password" placeholder="Min 6 characters"/></div>
+      <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="u-phone" placeholder="e.g. 0300-1234567"/></div>
+    </div>
+    <!-- Student-only fields -->
+    <div id="student-fields">
+      <div class="grid-2" style="margin-bottom:0;">
+        <div class="form-group"><label class="form-label">Roll No</label><input class="form-input" id="u-rollno" placeholder="e.g. 22CS010"/></div>
+        <div class="form-group"><label class="form-label">Branch</label><input class="form-input" id="u-branch" placeholder="e.g. Computer Science"/></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:0;">
+        <div class="form-group"><label class="form-label">Year</label>
+          <select class="form-select" id="u-year"><option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Room</label><input class="form-input" id="u-room" placeholder="e.g. A-101"/></div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="submitUser()">Create Account</button>
+  </div>
+</div>
+
+<!-- Announcement Modal -->
+<div class="modal-overlay" id="ann-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" style="margin:0;">Post New Announcement</div>
+      <div style="cursor:pointer;" onclick="document.getElementById('ann-modal').classList.remove('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="ann-title" placeholder="Announcement title"/></div>
+    <div class="grid-2" style="margin-bottom:0;">
+      <div class="form-group"><label class="form-label">Category</label>
+        <select class="form-select" id="ann-cat"><option>Event</option><option>Finance</option><option>Mess</option><option>Rules</option><option>General</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Priority</label>
+        <select class="form-select" id="ann-priority"><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Content *</label><textarea class="form-textarea" id="ann-content" placeholder="Write announcement..."></textarea></div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" id="ann-pinned" style="width:16px;height:16px;cursor:pointer;"/>
+      <label for="ann-pinned" class="form-label" style="margin:0;cursor:pointer;">Pin this announcement</label>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="submitAnnouncement()">Post Announcement</button>
+  </div>
+</div>
+
+<!-- Student Profile Modal -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal" style="max-width:520px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" style="margin:0;">Student Profile</div>
+      <div style="cursor:pointer;" onclick="document.getElementById('profile-modal').classList.remove('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div id="profile-body"></div>
+  </div>
+</div>
+
+<!-- Assign Room Modal -->
+<div class="modal-overlay" id="assign-room-modal">
+  <div class="modal" style="max-width:620px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div>
+        <div class="modal-title" style="margin:0;">Assign Room</div>
+        <div id="assign-student-label" style="font-size:12px;color:var(--text-sec);margin-top:4px;"></div>
+      </div>
+      <div style="cursor:pointer;" onclick="document.getElementById('assign-room-modal').classList.remove('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+      <select id="assign-block-filter" class="form-select" style="width:auto;flex:1;" onchange="filterAssignRooms()">
+        <option value="">All Blocks</option>
+        <option value="A">Block A</option>
+        <option value="B">Block B</option>
+        <option value="C">Block C</option>
+        <option value="D">Block D</option>
+      </select>
+      <select id="assign-type-filter" class="form-select" style="width:auto;flex:1;" onchange="filterAssignRooms()">
+        <option value="">All Types</option>
+        <option value="Single">Single</option>
+        <option value="Double">Double</option>
+        <option value="Triple">Triple</option>
+      </select>
+      <select id="assign-status-filter" class="form-select" style="width:auto;flex:1;" onchange="filterAssignRooms()">
+        <option value="available">Available Only</option>
+        <option value="">All Status</option>
+      </select>
+    </div>
+    <div id="assign-room-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;max-height:380px;overflow-y:auto;padding-right:4px;"></div>
+    <div style="margin-top:12px;display:flex;gap:12px;font-size:11px;color:var(--text-muted);">
+      <span>🟢 Available — click to assign</span>
+      <span>🔵 Occupied — full</span>
+      <span>🟡 Maintenance</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script>
+const AVATAR_COLORS = ['#4299e1','#ed64a6','#48bb78','#9f7aea','#f6ad55','#fc8181','#4fd1c5','#76e4f7'];
+const GRAD = { '#60a5fa':'#818cf8', '#22d3ee':'#60a5fa', '#4ade80':'#22d3ee', '#fbbf24':'#f87171', '#a78bfa':'#f472b6', '#f472b6':'#a78bfa' };
+const ADMIN_NAV = [
+  { key:'dashboard',     icon:'home',   label:'Dashboard' },
+  { key:'students',      icon:'users',  label:'Students' },
+  { key:'wardens',       icon:'shield', label:'Wardens / Staff' },
+  { key:'rooms',         icon:'bed',    label:'Rooms' },
+  { key:'complaints',    icon:'alert',  label:'Complaints' },
+  { key:'fees',          icon:'dollar', label:'Fees' },
+  { key:'announcements', icon:'bell',   label:'Notices' },
+  { key:'room-requests', icon:'eye',    label:'Room Requests' },
+  { key:'reports',       icon:'chart',  label:'Reports' },
+];
+const PRI_COLORS = { urgent:'#fc8181', high:'#f6c35a', normal:'#63b3ed' };
+const CAT_COLORS = { Event:'#b794f4', Finance:'#68d391', Mess:'#4fd1c5', Rules:'#f6c35a', General:'#63b3ed' };
+const FALLBACK_STATS = { students:163, occupiedRooms:128, availableRooms:38, maintenanceRooms:4,
+  complaints:{ pending:9, inProgress:8, resolved:45, escalated:3 }, visitorsInside:2, feesCollected:5410000 };
+const BLOCKS = ['A','B','C','D'];
+const ROOMS_DATA = Array.from({length:48},(_,i)=>({
+  number:`${BLOCKS[Math.floor(i/12)]}-${101+(i%12)}`,
+  type:['Single','Double','Triple'][i%3],
+  status:i%11===10?'maintenance':i%7===0?'available':'occupied',
+}));
+
+let currentSection = 'dashboard';
+let userModalRole = 'student';
+let chartsRendered = false;
+let _studentsData = [];
+let _complaintsData = [];
+let _feesData = [];
+
+function skeletonRows(cols, rows = 5) {
+  let html = '';
+  for (let r = 0; r < rows; r++) {
+    html += '<tr>';
+    for (let c = 0; c < cols; c++) {
+      html += `<td><div class="skeleton" style="width:${60 + Math.floor(Math.random()*30)}%;"></div></td>`;
+    }
+    html += '</tr>';
+  }
+  return html;
+}
+
+function showSection(key) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const sec = document.getElementById('sec-' + key);
+  if (sec) sec.classList.add('active');
+  currentSection = key;
+
+  document.querySelectorAll('#sidebar-nav .nav-item').forEach(item => {
+    const isActive = item.dataset.key === key;
+    item.style.background  = isActive ? 'rgba(127,156,245,.2)' : 'transparent';
+    item.style.borderColor = isActive ? 'rgba(127,156,245,.35)' : 'transparent';
+    item.querySelector('.nav-icon').style.color = isActive ? '#7f9cf5' : 'var(--text-sec)';
+  });
+
+  if (key === 'students')      loadStudents();
+  if (key === 'wardens')       loadWardens();
+  if (key === 'rooms')         renderRoomGrid();
+  if (key === 'complaints')    loadComplaintsFull();
+  if (key === 'fees')          loadFees();
+  if (key === 'announcements') { loadAnnouncements(); markAllRead(); }
+  if (key === 'room-requests') loadRoomChangeRequests();
+  if (key === 'reports')       loadReports();
+}
+
+async function init() {
+  const user = requireAuth(['admin']);
+  if (!user) return;
+
+  const roleColor = '#7f9cf5';
+
+  document.getElementById('sidebar-logo').innerHTML = `
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#4299e1,#7f9cf5);display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="22" x2="9" y2="12"/><line x1="15" y1="22" x2="15" y2="12"/><rect x="9" y="7" width="6" height="5"/></svg>
+      </div>
+      <div class="logo-text">
+        <div class="logo-title">SmartHostel</div>
+        <div class="logo-sub">ERP Platform</div>
+      </div>
+    </div>
+    <div style="margin:10px 10px 4px;padding:8px 10px;border-radius:10px;background:${roleColor}18;border:1px solid ${roleColor}33;display:flex;align-items:center;gap:8px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${roleColor}" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:${roleColor};text-transform:uppercase;letter-spacing:.5px;">ADMIN</div>
+        <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;">${user.name}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('sidebar-nav').innerHTML = ADMIN_NAV.map(item => `
+    <div class="nav-item" data-key="${item.key}" onclick="showSection('${item.key}')"
+      style="${item.key==='dashboard'?'background:rgba(127,156,245,.2);border-color:rgba(127,156,245,.35);':''}">
+      <div class="nav-icon" style="width:17px;height:17px;flex-shrink:0;color:${item.key==='dashboard'?'#7f9cf5':'var(--text-sec)'};">${ICONS[item.icon]||''}</div>
+      <span class="nav-label">${item.label}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('sidebar-bottom').innerHTML = `
+    <div class="collapse-btn" id="collapse-btn">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span class="nav-label" style="font-size:12px;">Collapse</span>
+    </div>
+    <div class="nav-item" onclick="logout()" style="margin-top:6px;background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.25);">
+      <div style="width:17px;height:17px;color:#fc8181;">${ICONS['logout']}</div>
+      <span class="nav-label" style="color:#fc8181;font-weight:600;">Sign Out</span>
+    </div>
+  `;
+
+  document.getElementById('collapse-btn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+
+  setupTopbar(user, 'Admin Dashboard');
+  await loadStats();
+  renderCharts();
+  renderActivity();
+  loadRecentComplaints();
+}
+
+// ── Dashboard ───────────────────────────────────────────
+async function loadStats() {
+  let s = FALLBACK_STATS;
+  try { const r = await api('/stats'); s = r.data; } catch {}
+  const STATS = [
+    { icon:'users', label:'Total Students', value:s.students, sub:'Active residents', color:'#60a5fa' },
+    { icon:'bed',   label:'Occupied Rooms', value:s.occupiedRooms, sub:`of ${s.occupiedRooms+s.availableRooms} rooms`, color:'#22d3ee' },
+    { icon:'check', label:'Available Rooms', value:s.availableRooms, sub:'Ready to allocate', color:'#4ade80' },
+    { icon:'alert', label:'Open Complaints', value:(s.complaints.pending+s.complaints.inProgress), sub:`${s.complaints.escalated} escalated`, color:'#fbbf24' },
+    { icon:'dollar',label:'Fees Collected', value:'Rs '+Math.round(s.feesCollected/100000)+'L', sub:'This semester', color:'#a78bfa' },
+    { icon:'eye',   label:'Visitors Inside', value:s.visitorsInside, sub:'Currently in', color:'#f472b6' },
+  ];
+  document.getElementById('stats-grid').innerHTML = STATS.map((st,i) => `
+    <div class="stat-card fu" style="animation-delay:${i*55}ms;border:1px solid ${st.color}33;position:relative;overflow:hidden;background:linear-gradient(135deg, ${st.color}2e, ${(GRAD[st.color]||st.color)}1a 45%, var(--card) 80%);"
+      onmouseenter="this.style.boxShadow='0 12px 34px ${st.color}40'"
+      onmouseleave="this.style.boxShadow='none'">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg, ${st.color}, ${GRAD[st.color]||st.color});"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="stat-label">${st.label}</div>
+          <div class="stat-value" data-count="${typeof st.value==='number'?st.value:''}">${typeof st.value==='number'?'0':st.value}</div>
+          <div class="stat-sub">${st.sub}</div>
+        </div>
+        <div class="stat-icon" style="background:${st.color}20;border:1px solid ${st.color}33;">
+          <div style="width:20px;height:20px;color:${st.color};">${ICONS[st.icon]||''}</div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  animateCounters();
+}
+
+// ── Animated Counters ───────────────────────────────────
+function animateCounters() {
+  document.querySelectorAll('.stat-value[data-count]').forEach(el => {
+    const target = parseInt(el.dataset.count, 10);
+    if (isNaN(target)) return;
+    const duration = 900;
+    const start = performance.now();
+    function step(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = Math.round(eased * target).toLocaleString();
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+function renderCharts() {
+  if (chartsRendered) return;
+  chartsRendered = true;
+  const gridColor = 'rgba(255,255,255,0.04)';
+  const tickStyle = { color:'#4a5568', font:{ family:'Outfit', size:11 } };
+
+  new Chart(document.getElementById('occupancyChart'), {
+    type:'line',
+    data:{ labels:['Aug','Sep','Oct','Nov','Dec','Jan'],
+      datasets:[
+        { label:'Occupied', data:[138,152,161,157,144,165], fill:true, backgroundColor:'rgba(99,179,237,0.15)', borderColor:'#63b3ed', borderWidth:2.5, tension:.4, pointRadius:4, pointBackgroundColor:'#63b3ed' },
+        { label:'Available', data:[32,18,9,13,26,5], fill:false, borderColor:'#68d391', borderWidth:2, borderDash:[5,3], tension:.4, pointRadius:3, pointBackgroundColor:'#68d391' },
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:true, position:'top', labels:{ color:'#94a3b8', font:{ family:'Outfit',size:11 }, usePointStyle:true } } },
+      scales:{ x:{ grid:{ color:gridColor }, ticks:tickStyle, border:{ display:false } }, y:{ grid:{ color:gridColor }, ticks:tickStyle, border:{ display:false } } } }
+  });
+
+  new Chart(document.getElementById('feeChart'), {
+    type:'bar',
+    data:{ labels:['Sep','Oct','Nov','Dec','Jan'],
+      datasets:[
+        { label:'Collected (Rs L)', data:[4.85,5.12,4.98,5.23,5.41], backgroundColor:'rgba(104,211,145,0.7)', borderRadius:8 },
+        { label:'Pending (Rs L)',   data:[.95,.68,.82,.57,.39], backgroundColor:'rgba(252,129,129,0.6)', borderRadius:8 },
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:true, position:'top', labels:{ color:'#94a3b8', font:{ family:'Outfit',size:11 }, usePointStyle:true } } },
+      scales:{ x:{ grid:{ display:false }, ticks:tickStyle, border:{ display:false } }, y:{ grid:{ color:gridColor }, ticks:{ ...tickStyle, callback:v=>`Rs ${v}L` }, border:{ display:false } } } }
+  });
+
+  const cpLabels=['Resolved','In Progress','Pending','Escalated'];
+  const cpColors=['#68d391','#63b3ed','#f6c35a','#fc8181'];
+  new Chart(document.getElementById('complaintChart'), {
+    type:'doughnut',
+    data:{ labels:cpLabels, datasets:[{ data:[45,28,17,8], backgroundColor:cpColors.map(c=>c+'cc'), borderColor:'transparent', hoverOffset:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{ legend:{ display:false } } }
+  });
+  document.getElementById('complaint-legend').innerHTML = cpLabels.map((l,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <div style="width:8px;height:8px;border-radius:2px;background:${cpColors[i]};"></div>
+        <span style="font-size:11px;color:var(--text-sec);">${l}</span>
+      </div>
+      <span style="font-size:12px;font-weight:700;color:var(--text);">${[45,28,17,8][i]}</span>
+    </div>`).join('');
+
+  new Chart(document.getElementById('attendanceChart'), {
+    type:'bar',
+    data:{ labels:['Mon','Tue','Wed','Thu','Fri','Sat'],
+      datasets:[
+        { label:'Present', data:[148,152,141,155,138,122], backgroundColor:'rgba(79,209,197,0.65)', borderRadius:6 },
+        { label:'Absent',  data:[17,13,24,10,27,43], backgroundColor:'rgba(252,129,129,0.55)', borderRadius:6 },
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+      scales:{ x:{ grid:{ display:false }, ticks:tickStyle, border:{ display:false } }, y:{ grid:{ color:gridColor }, ticks:tickStyle, border:{ display:false } } } }
+  });
+}
+
+function renderActivity() {
+  const ACTIVITIES = [
+    { text:'Room A-107 allocated to Rohan Jain',  by:'Warden Sharma', time:'2m ago',  dot:'#63b3ed' },
+    { text:'Complaint moved to In Progress',      by:'Maintenance',   time:'18m ago', dot:'#f6c35a' },
+    { text:'Fees collected from 14 students',     by:'System',        time:'1h ago',  dot:'#68d391' },
+    { text:'Visitor checked in – Block B',        by:'Guard Prakash', time:'2h ago',  dot:'#b794f4' },
+    { text:'Announcement: Hostel Day published',  by:'Dr. Verma',     time:'3h ago',  dot:'#4fd1c5' },
+  ];
+  document.getElementById('activity-feed').innerHTML = ACTIVITIES.map((a,i) => `
+    <div style="display:flex;gap:10px;padding-bottom:12px;margin-bottom:12px;${i<ACTIVITIES.length-1?'border-bottom:1px solid var(--divider);':''}">
+      <div style="width:8px;height:8px;border-radius:50%;background:${a.dot};margin-top:5px;flex-shrink:0;"></div>
+      <div>
+        <div style="font-size:12px;color:var(--text);line-height:1.4;">${a.text}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">by ${a.by} · ${a.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function loadRecentComplaints() {
+  const tbody = document.getElementById('complaints-dash-tbody');
+  let list = [];
+  try { const r = await api('/complaints'); list = r.data || []; } catch {}
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px;">No complaints found</td></tr>`; return; }
+  tbody.innerHTML = list.slice(0,6).map((c,i) => {
+    const av = c.student?.name ? c.student.name.split(' ').map(w=>w[0]).join('').toUpperCase() : 'S';
+    const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    return `<tr>
+      <td style="color:var(--blue);font-weight:700;">${c._id?.slice(-5).toUpperCase()||i+1}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;">${avatar(av,color,26)}<span style="font-weight:600;color:var(--text);">${c.student?.name||'Unknown'}</span></div></td>
+      <td style="color:var(--text-sec);">${c.room||'—'}</td>
+      <td style="color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</td>
+      <td>${chip(c.category)}</td>
+      <td>${badge(c.priority)}</td>
+      <td>${badge(c.status)}</td>
+      <td style="color:var(--text-muted);white-space:nowrap;">${formatDate(c.createdAt)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Students ────────────────────────────────────────────
+async function loadStudents() {
+  const tbody = document.getElementById('students-tbody');
+  tbody.innerHTML = skeletonRows(7);
+  try {
+    const { data } = await api('/users?role=student');
+    _studentsData = data;
+    if (!data.length) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);">No students yet</td></tr>`; return; }
+    tbody.innerHTML = data.map((u,i) => `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;">${avatar((u.name||'S').split(' ').map(w=>w[0]).join('').toUpperCase(), AVATAR_COLORS[i%AVATAR_COLORS.length], 28)}<span style="font-weight:600;color:var(--text);">${u.name}</span></div></td>
+        <td style="color:var(--text-sec);">${u.rollNo||'—'}</td>
+        <td style="color:var(--text-sec);">${u.email}</td>
+        <td style="color:var(--text-sec);">${u.room||'—'}</td>
+        <td style="color:var(--text-sec);">${u.branch||'—'}</td>
+        <td style="color:var(--text-sec);">${u.year||'—'}</td>
+        <td>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-sm btn-outline-blue" onclick="openProfile('${u._id}')">View</button>
+            <button class="btn btn-sm btn-outline-green" onclick="openAssignRoom('${u._id}','${(u.name||'').replace(/'/g,'')}')">🏠 Assign</button>
+            <button class="btn btn-sm btn-outline-red" onclick="deleteUser('${u._id}','${(u.name||'').replace(/'/g,'')}','students')">Delete</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--red);">Could not load students</td></tr>`;
+  }
+}
+
+// ── Export Students to Excel ────────────────────────────
+async function exportStudents() {
+  let data = _studentsData;
+  if (!data.length) {
+    try { const r = await api('/users?role=student'); data = r.data || []; } catch {}
+  }
+  if (!data.length) { toast('No students to export.','warning'); return; }
+
+  const rows = data.map(u => ({
+    Name:         u.name     || '',
+    'Roll No':    u.rollNo   || '',
+    Email:        u.email    || '',
+    Room:         u.room     || '',
+    Block:        u.block    || '',
+    Branch:       u.branch   || '',
+    Year:         u.year     || '',
+    Phone:        u.phone    || '',
+    'Fee Status': u.feeStatus|| 'due',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:20},{wch:12},{wch:26},{wch:10},{wch:10},{wch:20},{wch:8},{wch:16},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Students');
+  const date = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Students_${date}.xlsx`);
+  toast('Students exported to Excel!','success');
+}
+
+// ── Export Students to PDF ──────────────────────────────
+async function exportStudentsPDF() {
+  let data = _studentsData;
+  if (!data.length) {
+    try { const r = await api('/users?role=student'); data = r.data || []; } catch {}
+  }
+  if (!data.length) { toast('No students to export.','warning'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(18); doc.setTextColor(40);
+  doc.text('SmartHostel ERP - Students Report', 14, 18);
+  doc.setFontSize(10); doc.setTextColor(120);
+  doc.text('Generated: ' + new Date().toLocaleString('en-PK'), 14, 25);
+  doc.text('Total Students: ' + data.length, 14, 30);
+
+  const body = data.map(u => [
+    u.name||'', u.rollNo||'', u.email||'', u.room||'-', u.branch||'-', String(u.year||'-'), u.feeStatus||'due'
+  ]);
+
+  doc.autoTable({
+    startY: 36,
+    head: [['Name','Roll No','Email','Room','Branch','Year','Fee']],
+    body,
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [127,156,245], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245,247,252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  doc.save('Students_Report_' + new Date().toISOString().slice(0,10) + '.pdf');
+  toast('PDF report downloaded!','success');
+}
+
+// ── Export Complaints to Excel ──────────────────────────
+async function exportComplaints() {
+  let data = _complaintsData;
+  if (!data.length) {
+    try { const r = await api('/complaints'); data = r.data || []; } catch {}
+  }
+  if (!data.length) { toast('No complaints to export.','warning'); return; }
+
+  const rows = data.map(c => ({
+    ID:       c._id ? c._id.slice(-5).toUpperCase() : '',
+    Student:  c.student?.name || 'Unknown',
+    Room:     c.room || '',
+    Title:    c.title || '',
+    Category: c.category || '',
+    Priority: c.priority || '',
+    Status:   c.status || '',
+    Date:     c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-PK') : '',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:8},{wch:20},{wch:10},{wch:30},{wch:14},{wch:10},{wch:14},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Complaints');
+  const date = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Complaints_${date}.xlsx`);
+  toast('Complaints exported to Excel!','success');
+}
+
+// ── Export Complaints to PDF ────────────────────────────
+async function exportComplaintsPDF() {
+  let data = _complaintsData;
+  if (!data.length) {
+    try { const r = await api('/complaints'); data = r.data || []; } catch {}
+  }
+  if (!data.length) { toast('No complaints to export.','warning'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(18); doc.setTextColor(40);
+  doc.text('SmartHostel ERP - Complaints Report', 14, 18);
+  doc.setFontSize(10); doc.setTextColor(120);
+  doc.text('Generated: ' + new Date().toLocaleString('en-PK'), 14, 25);
+  doc.text('Total Complaints: ' + data.length, 14, 30);
+
+  const body = data.map(c => [
+    c._id ? c._id.slice(-5).toUpperCase() : '',
+    c.student?.name || 'Unknown',
+    c.room || '-',
+    c.title || '',
+    c.category || '',
+    c.priority || '',
+    c.status || '',
+  ]);
+
+  doc.autoTable({
+    startY: 36,
+    head: [['ID','Student','Room','Title','Category','Priority','Status']],
+    body,
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [127,156,245], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245,247,252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  doc.save('Complaints_Report_' + new Date().toISOString().slice(0,10) + '.pdf');
+  toast('PDF report downloaded!','success');
+}
+
+// ── Export Fees to Excel ────────────────────────────────
+async function exportFees() {
+  let data = _feesData;
+  if (!data.length) {
+    try { const r = await api('/users?role=student'); data = r.data || []; } catch {}
+  }
+  if (!data.length) { toast('No fee records to export.','warning'); return; }
+
+  const rows = data.map(u => ({
+    Student:      u.name     || '',
+    'Roll No':    u.rollNo   || '',
+    Room:         u.room     || '',
+    Branch:       u.branch   || '',
+    'Fee Status': u.feeStatus|| 'due',
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:22},{wch:12},{wch:10},{wch:20},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Fees');
+  const date = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Fees_${date}.xlsx`);
+  toast('Fees exported to Excel!','success');
+}
+
+// ── Wardens ─────────────────────────────────────────────
+async function loadWardens() {
+  const tbody = document.getElementById('wardens-tbody');
+  tbody.innerHTML = skeletonRows(5);
+  try {
+    const { data } = await api('/users?role=warden');
+    if (!data.length) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted);">No wardens yet</td></tr>`; return; }
+    tbody.innerHTML = data.map((u,i) => `
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:8px;">${avatar((u.name||'W').split(' ').map(w=>w[0]).join('').toUpperCase(), '#4fd1c5', 28)}<span style="font-weight:600;color:var(--text);">${u.name}</span></div></td>
+        <td style="color:var(--text-sec);">${u.email}</td>
+        <td style="color:var(--text-sec);">${u.phone||'—'}</td>
+        <td><span class="badge" style="background:#4fd1c522;color:#4fd1c5;">Warden</span></td>
+        <td><button class="btn btn-sm btn-outline-red" onclick="deleteUser('${u._id}','${(u.name||'').replace(/'/g,'')}','wardens')">Delete</button></td>
+      </tr>`).join('');
+  } catch {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--red);">Could not load wardens</td></tr>`;
+  }
+}
+
+// ── Add / Delete User ───────────────────────────────────
+function openUserModal(role) {
+  userModalRole = role;
+  document.getElementById('user-modal-title').textContent = role === 'student' ? 'Add New Student' : 'Add New Warden';
+  document.getElementById('student-fields').style.display = role === 'student' ? 'block' : 'none';
+  ['u-name','u-email','u-password','u-phone','u-rollno','u-branch','u-room'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('user-modal').classList.add('open');
+}
+
+async function submitUser() {
+  const name = document.getElementById('u-name').value.trim();
+  const email = document.getElementById('u-email').value.trim();
+  const password = document.getElementById('u-password').value;
+  const phone = document.getElementById('u-phone').value.trim();
+  if (!name || !email || !password) { toast('Please fill name, email & password.','warning'); return; }
+  if (password.length < 6) { toast('Password must be at least 6 characters.','warning'); return; }
+
+  const body = { name, email, password, phone, role: userModalRole };
+  if (userModalRole === 'student') {
+    body.rollNo = document.getElementById('u-rollno').value.trim();
+    body.branch = document.getElementById('u-branch').value.trim();
+    body.year   = Number(document.getElementById('u-year').value);
+    body.room   = document.getElementById('u-room').value.trim();
+  }
+
+  try {
+    await api('/auth/register', { method:'POST', body });
+    toast(`${userModalRole==='student'?'Student':'Warden'} added successfully!`,'success');
+    document.getElementById('user-modal').classList.remove('open');
+    if (userModalRole === 'student') loadStudents(); else loadWardens();
+  } catch (err) {
+    toast(err.message || 'Failed to add user.','error');
+  }
+}
+
+async function deleteUser(id, name, section) {
+  if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+  try {
+    await api(`/users/${id}`, { method:'DELETE' });
+    toast(`${name} deleted.`,'error');
+    if (section === 'students') loadStudents(); else loadWardens();
+  } catch (err) {
+    toast(err.message || 'Delete failed.','error');
+  }
+}
+
+// ── Student Profile ─────────────────────────────────────
+function openProfile(id) {
+  const u = _studentsData.find(s => s._id === id);
+  if (!u) { toast('Student not found. Reload Students.','warning'); return; }
+
+  const feeColor = u.feeStatus==='paid'?'#68d391':u.feeStatus==='partial'?'#f6c35a':'#fc8181';
+  const att = Number(u.attendance) || 0;
+  const attColor = att>=75?'#4fd1c5':'#f6c35a';
+  const init = (u.name||'S').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+
+  const rows = [
+    ['Roll No', u.rollNo||'—'],
+    ['Email',   u.email||'—'],
+    ['Phone',   u.phone||'—'],
+    ['Room',    u.room||'Not Assigned'],
+    ['Block',   u.block||'—'],
+    ['Branch',  u.branch||'—'],
+    ['Year',    u.year?('Year '+u.year):'—'],
+  ];
+
+  document.getElementById('profile-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+      <div style="width:60px;height:60px;border-radius:16px;background:#7f9cf533;border:1.5px solid #7f9cf555;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#7f9cf5;flex-shrink:0;">${init}</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;color:var(--text);">${u.name}</div>
+        <div style="font-size:12px;color:var(--text-sec);margin-top:2px;">${u.branch||'Student'} ${u.year?('· Year '+u.year):''}</div>
+        <span class="badge" style="background:#f687b322;color:#f687b3;margin-top:6px;display:inline-block;">Student</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+      <div style="padding:14px;border-radius:12px;background:${feeColor}12;border:1px solid ${feeColor}33;">
+        <div style="font-size:11px;color:var(--text-sec);margin-bottom:4px;">Fee Status</div>
+        <div style="font-size:16px;font-weight:800;color:${feeColor};text-transform:capitalize;">${u.feeStatus||'due'}</div>
+      </div>
+      <div style="padding:14px;border-radius:12px;background:${attColor}12;border:1px solid ${attColor}33;">
+        <div style="font-size:11px;color:var(--text-sec);margin-bottom:4px;">Attendance</div>
+        <div style="font-size:16px;font-weight:800;color:${attColor};">${att}%</div>
+      </div>
+    </div>
+
+    <div style="border:1px solid var(--divider);border-radius:12px;overflow:hidden;">
+      ${rows.map(([l,v],i)=>`
+        <div style="display:flex;justify-content:space-between;padding:11px 16px;${i<rows.length-1?'border-bottom:1px solid var(--divider);':''}">
+          <span style="font-size:12px;color:var(--text-sec);">${l}</span>
+          <span style="font-size:12px;font-weight:600;color:var(--text);">${v}</span>
+        </div>`).join('')}
+    </div>`;
+
+  document.getElementById('profile-modal').classList.add('open');
+}
+
+// ── Rooms ───────────────────────────────────────────────
+let _roomsData = [];
+
+async function renderRoomGrid() {
+  const roomColor = { available:'#68d391', occupied:'#63b3ed', maintenance:'#f6c35a' };
+  const grid = document.getElementById('room-grid');
+  grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Loading rooms...</div>';
+  try {
+    const { data } = await api('/rooms');
+    _roomsData = data;
+    if (!data.length) {
+      grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">No rooms found in database</div>';
+      return;
+    }
+    grid.innerHTML = data.map(r => {
+      const color = roomColor[r.status] || '#63b3ed';
+      const spotsLeft = (r.capacity||1) - (r.occupied||0);
+      return `<div title="${r.number} – ${r.type} | ${r.status} | ${spotsLeft} spot(s) left"
+        style="padding:10px 8px;border-radius:10px;text-align:center;
+          border:1.5px solid ${color}44;background:${color}10;cursor:pointer;transition:transform .15s;"
+        onmouseenter="this.style.transform='scale(1.06)'" onmouseleave="this.style.transform='scale(1)'">
+        <div style="font-size:11px;font-weight:700;color:${color};">${r.number}</div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${(r.type||'').slice(0,3)}</div>
+        <div style="font-size:9px;color:${color};margin-top:1px;">${r.status==='available'?spotsLeft+' left':r.status}</div>
+        <div style="width:6px;height:6px;border-radius:50%;background:${color};margin:4px auto 0;"></div>
+      </div>`;
+    }).join('');
+  } catch {
+    // API nahi mili to fallback
+    _roomsData = ROOMS_DATA;
+    grid.innerHTML = ROOMS_DATA.map(r => {
+      const color = roomColor[r.status];
+      return `<div title="${r.number} – ${r.type}"
+        style="padding:10px 8px;border-radius:10px;text-align:center;
+          border:1.5px solid ${color}44;background:${color}10;cursor:pointer;transition:transform .15s;"
+        onmouseenter="this.style.transform='scale(1.06)'" onmouseleave="this.style.transform='scale(1)'">
+        <div style="font-size:11px;font-weight:700;color:${color};">${r.number}</div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${r.type.slice(0,3)}</div>
+        <div style="width:6px;height:6px;border-radius:50%;background:${color};margin:5px auto 0;"></div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── Complaints ──────────────────────────────────────────
+async function loadComplaintsFull() {
+  const tbody = document.getElementById('complaints-full-tbody');
+  tbody.innerHTML = skeletonRows(9);
+  let list = [];
+  try { const r = await api('/complaints'); list = r.data || []; } catch {}
+  _complaintsData = list;
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted);">No complaints found</td></tr>`; return; }
+  tbody.innerHTML = list.map((c,i) => {
+    const av = c.student?.name ? c.student.name.split(' ').map(w=>w[0]).join('').toUpperCase() : 'S';
+    return `<tr onclick="openComplaintDetail('${c._id}')" style="cursor:pointer;">
+      <td style="color:var(--blue);font-weight:700;">${c._id?.slice(-5).toUpperCase()||i+1}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;">${avatar(av,AVATAR_COLORS[i%AVATAR_COLORS.length],26)}<span style="font-weight:600;color:var(--text);">${c.student?.name||'—'}</span></div></td>
+      <td style="color:var(--text-sec);">${c.room||'—'}</td>
+      <td style="color:var(--text);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</td>
+      <td>${chip(c.category)}</td>
+      <td>${badge(c.priority)}</td>
+      <td>${badge(c.status)}</td>
+      <td style="color:var(--text-muted);white-space:nowrap;">${formatDate(c.createdAt)}</td>
+      <td>
+        <div style="display:flex;gap:5px;">
+          <button class="btn btn-icon btn-sm btn-outline-green" onclick="updateComplaint('${c._id}','Resolved')" title="Resolve">✓</button>
+          <button class="btn btn-icon btn-sm btn-outline-amber" onclick="updateComplaint('${c._id}','In Progress')" title="In Progress">↻</button>
+          <button class="btn btn-icon btn-sm btn-outline-red" onclick="deleteComplaint('${c._id}')" title="Delete">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openComplaintDetail(id) {
+  const c = _complaintsData.find(x => x._id === id);
+  if (!c) { toast('Reload complaints first.','warning'); return; }
+
+  const priColor = { urgent:'#fc8181', high:'#f6c35a', normal:'#63b3ed' };
+  const staColor = { Resolved:'#68d391', Pending:'#f6c35a', 'In Progress':'#63b3ed', Escalated:'#fc8181' };
+  const pc = priColor[c.priority] || '#63b3ed';
+  const sc = staColor[c.status]   || '#63b3ed';
+  const av = (c.student?.name||'S').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+
+  document.getElementById('complaint-detail-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--divider);">
+      ${avatar(av, '#f687b3', 44)}
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--text);">${c.student?.name||'Unknown'}</div>
+        <div style="font-size:12px;color:var(--text-sec);margin-top:2px;">${c.student?.rollNo||''} · Room: ${c.room||'Not Assigned'}</div>
+      </div>
+      <div style="margin-left:auto;text-align:right;">
+        <span class="badge" style="background:${sc}22;color:${sc};display:block;margin-bottom:4px;">${c.status}</span>
+        <span class="badge" style="background:${pc}22;color:${pc};">${c.priority}</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">Issue Title</div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);">${c.title}</div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Full Description</div>
+      <div style="padding:14px;border-radius:10px;background:var(--hover);border:1px solid var(--divider);font-size:13px;color:var(--text-sec);line-height:1.7;">
+        ${c.description || '<span style="color:var(--text-muted);font-style:italic;">No description provided</span>'}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="padding:10px;border-radius:10px;background:var(--hover);border:1px solid var(--divider);text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Category</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">${c.category||'—'}</div>
+      </div>
+      <div style="padding:10px;border-radius:10px;background:var(--hover);border:1px solid var(--divider);text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Date Filed</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">${formatDate(c.createdAt)}</div>
+      </div>
+      <div style="padding:10px;border-radius:10px;background:var(--hover);border:1px solid var(--divider);text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">Resolved At</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">${c.resolvedAt ? formatDate(c.resolvedAt) : '—'}</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline-green btn-sm" style="flex:1;" onclick="updateComplaint('${c._id}','Resolved');document.getElementById('complaint-modal').classList.remove('open')">✓ Mark Resolved</button>
+      <button class="btn btn-outline-amber btn-sm" style="flex:1;" onclick="updateComplaint('${c._id}','In Progress');document.getElementById('complaint-modal').classList.remove('open')">↻ In Progress</button>
+      <button class="btn btn-outline-red btn-sm" onclick="deleteComplaint('${c._id}');document.getElementById('complaint-modal').classList.remove('open')">🗑</button>
+    </div>`;
+
+  document.getElementById('complaint-modal').classList.add('open');
+}
+
+async function deleteComplaint(id) {
+  if (!confirm('Delete this complaint? This cannot be undone.')) return;
+  try {
+    await api(`/complaints/${id}`, { method:'DELETE' });
+    toast('Complaint deleted.', 'error');
+    loadComplaintsFull();
+    loadRecentComplaints();
+  } catch { toast('Delete failed.', 'error'); }
+}
+
+async function updateComplaint(id, status) {
+  try {
+    await api(`/complaints/${id}`, { method:'PUT', body:{ status } });
+    toast(`Complaint marked as ${status}`);
+    loadComplaintsFull();
+    loadRecentComplaints();
+  } catch { toast('Update failed.','error'); }
+}
+
+// ── Fees ────────────────────────────────────────────────
+async function loadFees() {
+  let students = [];
+  try { const r = await api('/users?role=student'); students = r.data || []; } catch {}
+  _feesData = students;
+
+  const paid = students.filter(s => s.feeStatus === 'paid').length;
+  const due  = students.filter(s => s.feeStatus !== 'paid').length;
+
+  document.getElementById('fee-summary').innerHTML = [
+    {label:'Total Students', val:students.length, color:'#63b3ed'},
+    {label:'Fees Paid',      val:paid,            color:'#68d391'},
+    {label:'Fees Due',       val:due,             color:'#fc8181'},
+  ].map(s => `
+    <div class="card" style="padding:18px;border-top:2px solid ${s.color};">
+      <div style="font-size:11px;color:var(--text-sec);margin-bottom:4px;">${s.label}</div>
+      <div style="font-size:22px;font-weight:800;color:${s.color};">${s.val}</div>
+    </div>`).join('');
+
+  const tbody = document.getElementById('fees-tbody');
+  if (!students.length) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted);">No students yet</td></tr>`; return; }
+  tbody.innerHTML = students.map(u => `
+    <tr>
+      <td style="font-weight:600;color:var(--text);">${u.name}</td>
+      <td style="color:var(--text-sec);">${u.rollNo||'—'}</td>
+      <td style="color:var(--text-sec);">${u.room||'—'}</td>
+      <td>${badge(u.feeStatus||'due')}</td>
+    </tr>`).join('');
+}
+
+// ── Announcements ───────────────────────────────────────
+async function loadAnnouncements() {
+  let list = [];
+  try { const r = await api('/announcements'); list = r.data || []; } catch {}
+  const el = document.getElementById('ann-list');
+  if (!list.length) { el.innerHTML = `<div class="card" style="padding:30px;text-align:center;color:var(--text-muted);">No announcements yet</div>`; return; }
+  el.innerHTML = list.map(a => `
+    <div class="card" style="margin-bottom:14px;padding:20px 22px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="flex:1;">
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+            ${a.pinned?'<span style="font-size:10px;font-weight:700;color:#f6c35a;">📌 PINNED</span>':''}
+            ${badge((a.priority||'normal').toUpperCase(), PRI_COLORS[a.priority]||'#63b3ed')}
+            ${badge(a.category||'General', CAT_COLORS[a.category]||'#63b3ed')}
+          </div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">${a.title}</div>
+          <div style="font-size:13px;color:var(--text-sec);line-height:1.6;">${a.content}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">${formatDate(a.createdAt)}</div>
+        </div>
+        <button onclick="deleteAnnouncement('${a._id}')" style="padding:7px;border-radius:8px;background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.3);cursor:pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fc8181" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
+      </div>
+    </div>`).join('');
+}
+
+async function submitAnnouncement() {
+  const title = document.getElementById('ann-title').value.trim();
+  const content = document.getElementById('ann-content').value.trim();
+  const category = document.getElementById('ann-cat').value;
+  const priority = document.getElementById('ann-priority').value;
+  const pinned = document.getElementById('ann-pinned').checked;
+  if (!title || !content) { toast('Please fill all fields.','warning'); return; }
+  try {
+    await api('/announcements', { method:'POST', body:{ title, content, category, priority, pinned } });
+    toast('Announcement posted!');
+    document.getElementById('ann-modal').classList.remove('open');
+    document.getElementById('ann-title').value = '';
+    document.getElementById('ann-content').value = '';
+    loadAnnouncements();
+  } catch (err) { toast(err.message || 'Failed to post.','error'); }
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('Delete this announcement?')) return;
+  try {
+    await api(`/announcements/${id}`, { method:'DELETE' });
+    toast('Announcement deleted.','error');
+    loadAnnouncements();
+  } catch { toast('Delete failed.','error'); }
+}
+
+// ── Room Change Requests ────────────────────────────────
+async function loadRoomChangeRequests() {
+  const listEl = document.getElementById('rcr-list');
+  const badgeEl = document.getElementById('rcr-badge');
+  listEl.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-muted);">Loading...</div>`;
+  try {
+    const { data } = await api('/room-change-requests');
+    const pending  = data.filter(r => r.status === 'pending');
+    const reviewed = data.filter(r => r.status !== 'pending');
+
+    badgeEl.textContent = pending.length > 0 ? `${pending.length} Pending` : 'All Reviewed';
+    badgeEl.style.background = pending.length > 0 ? '#f6c35a22' : '#68d39122';
+    badgeEl.style.color      = pending.length > 0 ? '#f6c35a'   : '#68d391';
+
+    if (!data.length) {
+      listEl.innerHTML = `<div style="text-align:center;padding:40px;"><div style="font-size:36px;margin-bottom:12px;">✓</div><div style="font-size:14px;font-weight:600;color:var(--text);">No room change requests</div></div>`;
+      return;
+    }
+
+    listEl.innerHTML = '';
+    if (pending.length > 0) {
+      listEl.innerHTML += `<div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;">⏳ Pending (${pending.length})</div>`;
+      listEl.innerHTML += pending.map(r => requestCard(r, true)).join('');
+    }
+    if (reviewed.length > 0) {
+      listEl.innerHTML += `<div style="font-size:12px;font-weight:700;color:var(--text-muted);margin:20px 0 12px;text-transform:uppercase;letter-spacing:.5px;">Earlier Requests</div>`;
+      listEl.innerHTML += reviewed.map(r => requestCard(r, false)).join('');
+    }
+  } catch {
+    listEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red);">Could not load requests.</div>`;
+  }
+}
+
+function requestCard(r, showActions) {
+  const sc = r.status==='approved'?'#68d391':r.status==='rejected'?'#fc8181':'#f6c35a';
+  return `
+    <div style="padding:18px;border-radius:12px;background:var(--hover);border:1px solid var(--divider);margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:#f687b333;border:1.5px solid #f687b355;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#f687b3;flex-shrink:0;">
+          ${(r.student?.name||'S').split(' ').map(w=>w[0]).slice(0,2).join('')}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">${r.student?.name||'Unknown'}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${r.student?.rollNo||''} · ${r.student?.room||''}</div>
+        </div>
+        <div style="text-align:right;">
+          <span class="badge" style="background:${sc}22;color:${sc};">${r.status}</span>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">${formatDate(r.createdAt)}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div style="padding:8px 10px;border-radius:8px;background:var(--card);border:1px solid var(--divider);">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Current Room</div>
+          <div style="font-size:12px;font-weight:700;color:var(--blue);">${r.currentRoom}</div>
+        </div>
+        <div style="padding:8px 10px;border-radius:8px;background:var(--card);border:1px solid var(--divider);">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Wants Block</div>
+          <div style="font-size:12px;font-weight:700;color:var(--cyan);">${r.preferredBlock}</div>
+        </div>
+        <div style="padding:8px 10px;border-radius:8px;background:var(--card);border:1px solid var(--divider);">
+          <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Reason</div>
+          <div style="font-size:12px;font-weight:700;color:var(--amber);">${r.reason}</div>
+        </div>
+      </div>
+      ${r.details ? `<div style="padding:10px 12px;border-radius:8px;background:var(--card);border:1px solid var(--divider);margin-bottom:12px;font-size:12px;color:var(--text-sec);line-height:1.5;font-style:italic;">"${r.details}"</div>` : ''}
+      ${r.reviewNote ? `<div style="padding:8px 12px;border-radius:8px;background:${sc}12;border:1px solid ${sc}33;margin-bottom:12px;font-size:11px;color:${sc};">📝 ${r.reviewNote}</div>` : ''}
+      ${showActions ? `
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input id="note-${r._id}" placeholder="Add review note (optional)..." style="flex:1;padding:8px 12px;border-radius:8px;background:var(--input-bg);border:1px solid var(--input-bdr);color:var(--text);font-size:12px;font-family:'Outfit',sans-serif;outline:none;"/>
+          <button onclick="reviewRoomChange('${r._id}','approved')" style="padding:8px 16px;border-radius:8px;border:1px solid #68d39140;background:#68d39120;color:#68d391;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;">✓ Approve</button>
+          <button onclick="reviewRoomChange('${r._id}','rejected')" style="padding:8px 16px;border-radius:8px;border:1px solid #fc818140;background:#fc818120;color:#fc8181;font-size:12px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;white-space:nowrap;">✗ Reject</button>
+        </div>` : `<div style="font-size:11px;color:var(--text-muted);">Reviewed by ${r.reviewedBy?.name||'Admin'} on ${formatDate(r.reviewedAt)}</div>`}
+    </div>`;
+}
+
+async function reviewRoomChange(id, status) {
+  const note = document.getElementById('note-' + id)?.value || '';
+  try {
+    await api(`/room-change-requests/${id}`, { method:'PUT', body:{ status, reviewNote:note } });
+    toast(status==='approved' ? '✓ Request approved!' : '✗ Request rejected.', status==='approved'?'success':'error');
+    loadRoomChangeRequests();
+  } catch { toast('Failed to update.','error'); }
+}
+
+// ── Reports & Analytics ─────────────────────────────────
+let _reportData = null;
+let repCategoryChartInst = null;
+let repFeeChartInst = null;
+
+async function loadReports() {
+  let students = [], complaints = [], requests = [];
+  try { const r = await api('/users?role=student'); students = r.data || []; } catch {}
+  try { const r = await api('/complaints'); complaints = r.data || []; } catch {}
+  try { const r = await api('/room-change-requests'); requests = r.data || []; } catch {}
+
+  const feePaid    = students.filter(s => s.feeStatus === 'paid').length;
+  const feePartial = students.filter(s => s.feeStatus === 'partial').length;
+  const feeDue     = students.filter(s => s.feeStatus === 'due' || !s.feeStatus).length;
+  const recovery   = students.length ? Math.round((feePaid / students.length) * 100) : 0;
+
+  const resolved = complaints.filter(c => c.status === 'Resolved').length;
+  const resRate  = complaints.length ? Math.round((resolved / complaints.length) * 100) : 0;
+  const pendingReq = requests.filter(r => r.status === 'pending').length;
+
+  const catCount = {};
+  complaints.forEach(c => { const k = c.category || 'Other'; catCount[k] = (catCount[k]||0) + 1; });
+
+  _reportData = { students, complaints, requests, feePaid, feePartial, feeDue, recovery, resolved, resRate, pendingReq, catCount };
+
+  document.getElementById('report-kpis').innerHTML = [
+    { label:'Fee Recovery Rate', val: recovery + '%',    color:'#68d391' },
+    { label:'Total Complaints',  val: complaints.length, color:'#63b3ed' },
+    { label:'Resolution Rate',   val: resRate + '%',     color:'#4fd1c5' },
+    { label:'Pending Requests',  val: pendingReq,        color:'#f6c35a' },
+  ].map(k => `
+    <div class="card" style="padding:18px;border-top:2px solid ${k.color};">
+      <div style="font-size:11px;color:var(--text-sec);margin-bottom:4px;">${k.label}</div>
+      <div style="font-size:26px;font-weight:800;color:${k.color};">${k.val}</div>
+    </div>`).join('');
+
+  renderReportCharts(catCount, { feePaid, feePartial, feeDue });
+  renderInsights(_reportData);
+}
+
+function renderReportCharts(catCount, fee) {
+  const tickStyle = { color:'#4a5568', font:{ family:'Outfit', size:11 } };
+  const labels = Object.keys(catCount);
+  const values = Object.values(catCount);
+  const palette = ['#63b3ed','#f6c35a','#fc8181','#b794f4','#4fd1c5','#68d391','#f687b3'];
+
+  if (repCategoryChartInst) repCategoryChartInst.destroy();
+  repCategoryChartInst = new Chart(document.getElementById('repCategoryChart'), {
+    type:'bar',
+    data:{ labels: labels.length?labels:['No data'], datasets:[{ data: values.length?values:[0], backgroundColor: labels.map((_,i)=>palette[i%palette.length]+'cc'), borderRadius:8 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+      scales:{ x:{ grid:{ display:false }, ticks:tickStyle, border:{ display:false } }, y:{ grid:{ color:'rgba(255,255,255,0.04)' }, ticks:{ ...tickStyle, precision:0 }, border:{ display:false } } } }
+  });
+
+  if (repFeeChartInst) repFeeChartInst.destroy();
+  repFeeChartInst = new Chart(document.getElementById('repFeeChart'), {
+    type:'doughnut',
+    data:{ labels:['Paid','Partial','Due'], datasets:[{ data:[fee.feePaid, fee.feePartial, fee.feeDue], backgroundColor:['#68d391cc','#f6c35acc','#fc8181cc'], borderColor:'transparent', hoverOffset:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
+      plugins:{ legend:{ display:true, position:'bottom', labels:{ color:'#94a3b8', font:{ family:'Outfit',size:11 }, usePointStyle:true, padding:14 } } } }
+  });
+}
+
+function renderInsights(d) {
+  const insights = [];
+  if (d.students.length) {
+    insights.push(d.recovery >= 70
+      ? `Fee recovery is healthy at ${d.recovery}% — ${d.feePaid} of ${d.students.length} students have cleared dues.`
+      : `Fee recovery is low at ${d.recovery}%. ${d.feeDue} students still have pending dues — consider sending reminders.`);
+  }
+  if (d.complaints.length) {
+    insights.push(d.resRate >= 60
+      ? `Complaint resolution is strong — ${d.resRate}% of ${d.complaints.length} complaints resolved.`
+      : `Only ${d.resRate}% of complaints resolved. ${d.complaints.length - d.resolved} still open — needs attention.`);
+    const topCat = Object.entries(d.catCount).sort((a,b)=>b[1]-a[1])[0];
+    if (topCat) insights.push(`Most complaints fall under "${topCat[0]}" (${topCat[1]} cases) — a recurring problem area.`);
+  }
+  if (d.pendingReq > 0) insights.push(`${d.pendingReq} room change request${d.pendingReq>1?'s are':' is'} awaiting review.`);
+  if (!insights.length) insights.push('Not enough data yet to generate insights. Add students and complaints to see analytics.');
+
+  document.getElementById('report-insights').innerHTML = insights.map(t => `
+    <div style="display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--divider);">
+      <div style="color:#7f9cf5;flex-shrink:0;font-size:14px;">▸</div>
+      <div style="font-size:13px;color:var(--text-sec);line-height:1.5;">${t}</div>
+    </div>`).join('');
+}
+
+async function downloadFullReport() {
+  if (!_reportData) { toast('Open Reports first.','warning'); return; }
+  const d = _reportData;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.setFontSize(20); doc.setTextColor(40);
+  doc.text('SmartHostel ERP', 14, 18);
+  doc.setFontSize(13); doc.setTextColor(90);
+  doc.text('Analytics Report', 14, 26);
+  doc.setFontSize(10); doc.setTextColor(120);
+  doc.text('Generated: ' + new Date().toLocaleString('en-PK'), 14, 33);
+
+  doc.autoTable({
+    startY: 40,
+    head: [['Metric','Value']],
+    body: [
+      ['Total Students', String(d.students.length)],
+      ['Fees Paid', String(d.feePaid)],
+      ['Fees Partial', String(d.feePartial)],
+      ['Fees Due', String(d.feeDue)],
+      ['Fee Recovery Rate', d.recovery + '%'],
+      ['Total Complaints', String(d.complaints.length)],
+      ['Resolved Complaints', String(d.resolved)],
+      ['Resolution Rate', d.resRate + '%'],
+      ['Pending Room Requests', String(d.pendingReq)],
+    ],
+    styles: { fontSize: 10, cellPadding: 4 },
+    headStyles: { fillColor: [127,156,245], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245,247,252] },
+    margin: { left: 14, right: 14 },
+  });
+
+  doc.save('Analytics_Report_' + new Date().toISOString().slice(0,10) + '.pdf');
+  toast('Full report downloaded!','success');
+}
+
+// ── ASSIGN ROOM ─────────────────────────────────────────
+let _assignStudentId = null;
+let _allRoomsForAssign = [];
+
+async function openAssignRoom(studentId, studentName) {
+  _assignStudentId = studentId;
+  document.getElementById('assign-student-label').textContent = `Student: ${studentName}`;
+  document.getElementById('assign-block-filter').value = '';
+  document.getElementById('assign-type-filter').value = '';
+  document.getElementById('assign-status-filter').value = 'available';
+  document.getElementById('assign-room-modal').classList.add('open');
+  document.getElementById('assign-room-grid').innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Loading rooms...</div>';
+  try {
+    const { data } = await api('/rooms');
+    _allRoomsForAssign = data;
+    filterAssignRooms();
+  } catch {
+    document.getElementById('assign-room-grid').innerHTML = '<div style="text-align:center;padding:20px;color:var(--red);">Could not load rooms. Is server running?</div>';
+  }
+}
+
+function filterAssignRooms() {
+  const block  = document.getElementById('assign-block-filter').value;
+  const type   = document.getElementById('assign-type-filter').value;
+  const status = document.getElementById('assign-status-filter').value;
+  let filtered = _allRoomsForAssign;
+  if (block)  filtered = filtered.filter(r => r.block === block);
+  if (type)   filtered = filtered.filter(r => r.type === type);
+  if (status) filtered = filtered.filter(r => r.status === status);
+  renderAssignGrid(filtered);
+}
+
+function renderAssignGrid(rooms) {
+  const grid = document.getElementById('assign-room-grid');
+  const roomColor = { available:'#68d391', occupied:'#63b3ed', maintenance:'#f6c35a' };
+  if (!rooms.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">No rooms match your filter</div>';
+    return;
+  }
+  grid.innerHTML = rooms.map(r => {
+    const color     = roomColor[r.status] || '#63b3ed';
+    const isAvail   = r.status === 'available' && (r.occupied||0) < (r.capacity||1);
+    const isMaint   = r.status === 'maintenance';
+    const spotsLeft = (r.capacity||1) - (r.occupied||0);
+    const clickFn   = isAvail
+      ? `confirmAssignRoom('${r._id}','${r.number}')`
+      : isMaint
+        ? `toast('⚠ Room ${r.number} is under maintenance!','warning')`
+        : `toast('⚠ Room ${r.number} is full!','error')`;
+    return `
+      <div onclick="${clickFn}" title="${r.number} | ${r.type} | ${r.status}${isAvail?' | '+spotsLeft+' spot(s) left':''}"
+        style="padding:10px 8px;border-radius:10px;text-align:center;
+          border:1.5px solid ${color}${isAvail?'66':'30'};
+          background:${color}${isAvail?'18':'08'};
+          cursor:${isAvail?'pointer':'not-allowed'};
+          opacity:${isAvail?'1':'0.55'};
+          transition:transform .15s,box-shadow .15s;"
+        onmouseenter="if(${isAvail}) { this.style.transform='scale(1.07)'; this.style.boxShadow='0 4px 16px ${color}44'; }"
+        onmouseleave="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+        <div style="font-size:11px;font-weight:700;color:${color};">${r.number}</div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${(r.type||'').slice(0,3)}</div>
+        <div style="font-size:9px;color:${color};margin-top:2px;font-weight:600;">${isAvail ? spotsLeft+' left' : r.status}</div>
+        <div style="width:6px;height:6px;border-radius:50%;background:${color};margin:4px auto 0;"></div>
+      </div>`;
+  }).join('');
+}
+
+async function confirmAssignRoom(roomId, roomNumber) {
+  if (!confirm(`Assign room ${roomNumber} to this student?`)) return;
+  try {
+    await api(`/rooms/${roomId}/allocate`, { method:'POST', body:{ studentId: _assignStudentId } });
+    toast(`✓ Room ${roomNumber} assigned successfully!`, 'success');
+    document.getElementById('assign-room-modal').classList.remove('open');
+    loadStudents();
+    renderRoomGrid();
+  } catch (err) {
+    const msg = (err.message || '').toLowerCase();
+    if (msg.includes('maintenance')) toast('⚠ Room is under maintenance!', 'warning');
+    else if (msg.includes('full'))   toast('⚠ Room is full!', 'error');
+    else toast(err.message || 'Assignment failed.', 'error');
+  }
+}
+
+['user-modal','ann-modal','profile-modal','assign-room-modal','complaint-modal'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove('open');
+  });
+});
+
+init();
+</script>
+</body>
+</html>

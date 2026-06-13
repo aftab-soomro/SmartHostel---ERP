@@ -1,0 +1,851 @@
+<!-- This is student.html File -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Student Dashboard – SmartHostel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="../css/style.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .page-section { display:none; }
+    .page-section.active { display:block; animation: fadeUp .35s ease forwards; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar"><div id="sidebar-logo"></div><nav id="sidebar-nav"></nav><div class="sidebar-bottom" id="sidebar-bottom"></div></div>
+  <div id="main">
+    <div id="topbar"></div>
+    <div id="notif-panel"></div>
+    <div id="content">
+
+      <!-- ══ SECTION 1: Dashboard ══ -->
+      <div id="sec-dashboard" class="page-section active">
+        <div class="card fu" id="welcome-banner" style="padding:24px;margin-bottom:20px;background:linear-gradient(135deg,rgba(66,153,225,.12),rgba(127,156,245,.08));"></div>
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div class="card accent-top-blue fu" style="animation-delay:80ms;">
+            <div class="card-pad">
+              <div class="card-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#63b3ed" stroke-width="2"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
+                  <div class="card-title">My Room</div>
+                </div>
+                <span class="badge" style="background:#63b3ed22;color:#63b3ed;">Occupied</span>
+              </div>
+              <div id="room-details-dash"></div>
+              <button class="btn btn-outline-blue btn-sm" style="margin-top:12px;" onclick="showSection('room')">View Full Details →</button>
+            </div>
+          </div>
+          <div class="card accent-top-green fu" style="animation-delay:130ms;">
+            <div class="card-pad">
+              <div class="card-header">
+                <div class="card-title">Fee Status</div>
+                <span id="fee-badge-dash"></span>
+              </div>
+              <div id="fee-details-dash"></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="card accent-top-amber fu" style="animation-delay:180ms;">
+            <div class="card-pad">
+              <div class="card-header">
+                <div class="card-title">My Complaints</div>
+                <button class="btn btn-sm btn-outline-blue" onclick="showSection('complaints')">View All</button>
+              </div>
+              <div id="complaints-dash"></div>
+            </div>
+          </div>
+          <div class="card accent-top-cyan fu" style="animation-delay:230ms;">
+            <div class="card-pad">
+              <div class="card-header">
+                <div class="card-title">Attendance</div>
+                <span id="att-badge-dash"></span>
+              </div>
+              <div id="att-progress-dash" style="margin-bottom:14px;"></div>
+              <div style="height:150px;position:relative;">
+                <canvas id="attChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card fu" style="margin-top:16px;animation-delay:280ms;">
+          <div class="card-pad" style="border-bottom:1px solid var(--divider);">
+            <div class="card-header" style="margin-bottom:0;">
+              <div class="card-title">Latest Announcements</div>
+              <button class="btn btn-sm btn-outline-blue" onclick="showSection('announcements')">View All</button>
+            </div>
+          </div>
+          <div id="ann-dash"></div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 2: My Room ══ -->
+      <div id="sec-room" class="page-section">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+          <h2 style="font-size:18px;font-weight:700;color:var(--text);">My Room Details</h2>
+        </div>
+        <div class="grid-2">
+          <div class="card accent-top-blue">
+            <div class="card-pad">
+              <div class="card-header">
+                <div class="card-title">Room Information</div>
+                <span class="badge" style="background:#63b3ed22;color:#63b3ed;">Occupied</span>
+              </div>
+              <div id="room-details-full"></div>
+            </div>
+          </div>
+          <div class="card accent-top-purple">
+            <div class="card-pad">
+              <div class="card-header"><div class="card-title">Room Facilities</div></div>
+              <div id="room-facilities"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Room Change Request Form -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-pad">
+            <div class="card-header"><div class="card-title">Room Change Request</div></div>
+            <div class="grid-2" style="margin-bottom:0;">
+              <div class="form-group">
+                <label class="form-label">Reason for Change</label>
+                <select class="form-select" id="room-change-reason">
+                  <option>Medical Reasons</option>
+                  <option>Roommate Issues</option>
+                  <option>Noise Disturbance</option>
+                  <option>Closer to Department</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Preferred Block</label>
+                <select class="form-select" id="room-change-block">
+                  <option>Alpha</option><option>Beta</option><option>Gamma</option><option>Delta</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Additional Details</label>
+              <textarea class="form-textarea" id="room-change-desc" placeholder="Explain your reason..."></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="submitRoomChange()">Submit Room Change Request</button>
+          </div>
+        </div>
+
+        <!-- ══ Room Change Request History ══ -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-pad" style="border-bottom:1px solid var(--divider);">
+            <div class="card-header" style="margin-bottom:0;">
+              <div class="card-title">My Room Change Requests</div>
+              <span id="rcr-student-badge" class="badge" style="background:#63b3ed22;color:#63b3ed;">Loading...</span>
+            </div>
+          </div>
+          <!-- Summary Cards -->
+          <div id="rcr-student-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px;border-bottom:1px solid var(--divider);"></div>
+          <!-- Table -->
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Current Room</th>
+                  <th>Wants Block</th>
+                  <th>Reason</th>
+                  <th>Details</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Review Note</th>
+                </tr>
+              </thead>
+              <tbody id="rcr-student-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══ SECTION 3: Complaints ══ -->
+      <div id="sec-complaints" class="page-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+            <h2 style="font-size:18px;font-weight:700;color:var(--text);">My Complaints</h2>
+          </div>
+          <button class="btn btn-primary" onclick="document.getElementById('complaint-modal').classList.add('open')">+ New Complaint</button>
+        </div>
+        <div id="complaints-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;"></div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody id="complaints-full-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 4: Fees ══ -->
+      <div id="sec-fees" class="page-section">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+          <h2 style="font-size:18px;font-weight:700;color:var(--text);">Fee Management</h2>
+        </div>
+        <div id="fee-summary-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;"></div>
+        <div class="card">
+          <div class="card-pad" style="border-bottom:1px solid var(--divider);">
+            <div class="card-title">Fee History</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Type</th><th>Month</th><th>Amount</th><th>Due Date</th><th>Status</th><th>Receipt</th></tr></thead>
+              <tbody id="fee-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 5: Attendance ══ -->
+      <div id="sec-attendance" class="page-section">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+          <h2 style="font-size:18px;font-weight:700;color:var(--text);">My Attendance</h2>
+        </div>
+        <div id="att-summary-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;"></div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-pad">
+              <div class="card-title" style="margin-bottom:16px;">Weekly Chart</div>
+              <div style="height:220px;position:relative;">
+                <canvas id="attChartFull"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-pad">
+              <div class="card-title" style="margin-bottom:14px;">Recent Attendance Log</div>
+              <div id="att-log"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ SECTION 6: Announcements ══ -->
+      <div id="sec-announcements" class="page-section">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <button onclick="showSection('dashboard')" class="btn btn-sm btn-outline-blue">← Back</button>
+          <h2 style="font-size:18px;font-weight:700;color:var(--text);">Notices & Announcements</h2>
+        </div>
+        <div id="ann-full"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Complaint Modal -->
+<div class="modal-overlay" id="complaint-modal">
+  <div class="modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div class="modal-title" style="margin:0;">Submit New Complaint</div>
+      <div style="cursor:pointer;" onclick="document.getElementById('complaint-modal').classList.remove('open')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="c-title" placeholder="Describe the issue briefly"/></div>
+    <div class="grid-2" style="margin-bottom:0;">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="c-cat">
+          <option>Plumbing</option><option>Electrical</option><option>IT</option>
+          <option>Maintenance</option><option>Food</option><option>Appliances</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select class="form-select" id="c-priority">
+          <option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Description *</label><textarea class="form-textarea" id="c-desc" placeholder="Detailed description..."></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="submitComplaint()">Submit Complaint</button>
+  </div>
+</div>
+
+<script src="../js/app.js"></script>
+<script>
+
+function pkr(n) { return 'Rs ' + Number(n).toLocaleString(); }
+
+const STUDENT_NAV = [
+  { key:'dashboard',    icon:'home',   label:'My Dashboard' },
+  { key:'room',         icon:'bed',    label:'My Room' },
+  { key:'complaints',   icon:'alert',  label:'Complaints' },
+  { key:'fees',         icon:'dollar', label:'Fees' },
+  { key:'attendance',   icon:'check',  label:'Attendance' },
+  { key:'announcements',icon:'bell',   label:'Notices' },
+];
+
+const PRI_COLORS = { urgent:'#fc8181', high:'#f6c35a', normal:'#63b3ed' };
+const CAT_COLORS = { Event:'#b794f4', Finance:'#68d391', Mess:'#4fd1c5', Rules:'#f6c35a', General:'#63b3ed' };
+let chartInstance = null;
+let chartFullInstance = null;
+let currentSection = 'dashboard';
+
+// ── Section Switch ──────────────────────────────────────
+function showSection(key) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const sec = document.getElementById('sec-' + key);
+  if (sec) sec.classList.add('active');
+  currentSection = key;
+
+  document.querySelectorAll('#sidebar-nav .nav-item').forEach(item => {
+    const isActive = item.dataset.key === key;
+    item.style.background  = isActive ? 'rgba(246,135,179,.2)' : 'transparent';
+    item.style.borderColor = isActive ? 'rgba(246,135,179,.35)' : 'transparent';
+    item.style.color       = isActive ? 'var(--text)' : '';
+    item.querySelector('.nav-icon').style.color = isActive ? '#f687b3' : 'var(--text-sec)';
+  });
+
+  if (key === 'attendance')    renderAttFull();
+  if (key === 'announcements') { renderAnnFull(); markAllRead(); }
+  if (key === 'complaints')    renderComplaintsFull();
+  if (key === 'fees')          renderFeesFull();
+  if (key === 'room') {
+    renderRoomFacilities();
+    loadMyRoomRequests();
+  }
+}
+
+// ── Init ────────────────────────────────────────────────
+async function init() {
+  const user = requireAuth(['student']);
+  if (!user) return;
+
+  const roleColor = '#f687b3';
+
+  document.getElementById('sidebar-logo').innerHTML = `
+    <div class="sidebar-logo">
+      <div class="logo-icon" style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#4299e1,#7f9cf5);display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="22" x2="9" y2="12"/><line x1="15" y1="22" x2="15" y2="12"/><rect x="9" y="7" width="6" height="5"/></svg>
+      </div>
+      <div class="logo-text">
+        <div class="logo-title">SmartHostel</div>
+        <div class="logo-sub">ERP Platform</div>
+      </div>
+    </div>
+    <div style="margin:10px 10px 4px;padding:8px 10px;border-radius:10px;background:${roleColor}18;border:1px solid ${roleColor}33;display:flex;align-items:center;gap:8px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${roleColor}" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:${roleColor};text-transform:uppercase;letter-spacing:.5px;">STUDENT</div>
+        <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;">${user.name}</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('sidebar-nav').innerHTML = STUDENT_NAV.map(item => `
+    <div class="nav-item" data-key="${item.key}" onclick="showSection('${item.key}')"
+      style="${item.key==='dashboard'?'background:rgba(246,135,179,.2);border-color:rgba(246,135,179,.35);':''}">
+      <div class="nav-icon" style="width:17px;height:17px;flex-shrink:0;color:${item.key==='dashboard'?'#f687b3':'var(--text-sec)'};">${ICONS[item.icon]||''}</div>
+      <span class="nav-label">${item.label}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('sidebar-bottom').innerHTML = `
+    <div class="collapse-btn" id="collapse-btn">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span class="nav-label" style="font-size:12px;">Collapse</span>
+    </div>
+    <div class="nav-item" onclick="logout()" style="margin-top:6px;background:rgba(252,129,129,.1);border:1px solid rgba(252,129,129,.25);">
+      <div style="width:17px;height:17px;color:#fc8181;">${ICONS['logout']}</div>
+      <span class="nav-label" style="color:#fc8181;font-weight:600;">Sign Out</span>
+    </div>
+  `;
+
+  document.getElementById('collapse-btn').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  });
+
+  setupTopbar(user, 'Student Dashboard');
+
+  const p = {
+    name:       user.name       || 'Arjun Mehta',
+    rollNo:     user.rollNo     || '22CS001',
+    room:       user.room       || 'A-101',
+    block:      user.block      || 'Alpha',
+    branch:     user.branch     || 'Computer Science',
+    year:       user.year       || 2,
+    attendance: user.attendance || 94,
+    feeStatus:  user.feeStatus  || 'paid',
+  };
+
+  renderBanner(p);
+  renderRoomDash(p);
+  renderRoomFull(p);
+  renderFeesDash(p);
+  renderAttendanceDash(p);
+  await loadComplaintsDash();
+  await loadAnnouncementsDash();
+}
+
+// ── Banner ──────────────────────────────────────────────
+function renderBanner(p) {
+  document.getElementById('welcome-banner').innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      ${avatar(initials(p.name), '#f687b3', 56)}
+      <div>
+        <h2 style="font-size:20px;font-weight:800;color:var(--text);">${p.name}</h2>
+        <p style="font-size:13px;color:var(--text-sec);">${p.branch} · Year ${p.year} · Roll: ${p.rollNo}</p>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap;">
+        ${badge(p.feeStatus==='paid'?'Fee Paid':'Fee Due', p.feeStatus==='paid'?'#68d391':'#fc8181')}
+        ${badge(p.attendance+'% Attendance', p.attendance>=75?'#4fd1c5':'#f6c35a')}
+      </div>
+    </div>`;
+}
+
+// ── Room ────────────────────────────────────────────────
+function roomRows(p) {
+  return [
+    ['Room Number',  p.room],
+    ['Block',        p.block + ' Block'],
+    ['Room Type',    'Double Occupancy'],
+    ['Floor',        'Ground Floor'],
+    ['Monthly Rent', pkr(7000) + ' / month'],
+  ];
+}
+function renderRoomDash(p) {
+  document.getElementById('room-details-dash').innerHTML = roomRows(p).map(([l,v]) => `
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--divider);">
+      <span style="font-size:12px;color:var(--text-sec);">${l}</span>
+      <span style="font-size:12px;font-weight:600;color:var(--text);">${v}</span>
+    </div>`).join('');
+}
+function renderRoomFull(p) {
+  document.getElementById('room-details-full').innerHTML = [
+    ...roomRows(p),
+    ['Amenities',     'WiFi, AC, Attached Bath'],
+    ['Block Warden',  'Dr. R. Sharma'],
+    ['Hostel Office', 'Block Alpha, Ground Floor'],
+  ].map(([l,v]) => `
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--divider);">
+      <span style="font-size:12px;color:var(--text-sec);">${l}</span>
+      <span style="font-size:12px;font-weight:600;color:var(--text);">${v}</span>
+    </div>`).join('');
+}
+function renderRoomFacilities() {
+  const facilities = [
+    {icon:'📶', label:'WiFi',             desc:'High Speed 100Mbps'},
+    {icon:'❄️', label:'Air Conditioning', desc:'Split AC'},
+    {icon:'🚿', label:'Attached Bath',    desc:'24hr Water Supply'},
+    {icon:'🔒', label:'Security Lock',    desc:'Digital Lock'},
+    {icon:'💡', label:'Electricity',      desc:'24hr Power Backup'},
+    {icon:'🧹', label:'Housekeeping',     desc:'Daily Cleaning'},
+  ];
+  document.getElementById('room-facilities').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">' +
+    facilities.map(f => `
+      <div style="padding:12px;border-radius:10px;background:var(--hover);border:1px solid var(--divider);">
+        <div style="font-size:22px;margin-bottom:6px;">${f.icon}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${f.label}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${f.desc}</div>
+      </div>`).join('') +
+    '</div>';
+}
+
+// ── Room Change Request History ─────────────────────────
+async function loadMyRoomRequests() {
+  const statsEl = document.getElementById('rcr-student-stats');
+  const tbody   = document.getElementById('rcr-student-tbody');
+  const badgeEl = document.getElementById('rcr-student-badge');
+
+  // Loading state
+  tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);">Loading...</td></tr>`;
+
+  try {
+    const { data } = await api('/room-change-requests/my');
+
+    // Badge
+    badgeEl.textContent = `${data.length} Request${data.length !== 1 ? 's' : ''}`;
+
+    // Stats
+    const pending  = data.filter(r => r.status === 'pending').length;
+    const approved = data.filter(r => r.status === 'approved').length;
+    const rejected = data.filter(r => r.status === 'rejected').length;
+
+    statsEl.innerHTML = [
+      { label:'Total',    val: data.length, color:'#63b3ed' },
+      { label:'Approved', val: approved,    color:'#68d391' },
+      { label:'Pending',  val: pending,     color:'#f6c35a' },
+    ].map(s => `
+      <div style="padding:12px;border-radius:10px;text-align:center;
+        background:${s.color}12;border:1px solid ${s.color}33;">
+        <div style="font-size:22px;font-weight:800;color:${s.color};">${s.val}</div>
+        <div style="font-size:11px;color:var(--text-sec);margin-top:3px;">${s.label}</div>
+      </div>`).join('');
+
+    // Table
+    if (data.length === 0) {
+      tbody.innerHTML = `
+        <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">
+          No room change requests yet
+        </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.map((r, i) => {
+      const sc = r.status==='approved'?'#68d391':r.status==='rejected'?'#fc8181':'#f6c35a';
+      return `<tr>
+        <td style="color:var(--blue);font-weight:700;">#${i+1}</td>
+        <td style="color:var(--text);font-weight:600;">${r.currentRoom}</td>
+        <td><span class="badge" style="background:#4fd1c522;color:#4fd1c5;">${r.preferredBlock}</span></td>
+        <td>${chip(r.reason)}</td>
+        <td style="color:var(--text-sec);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          title="${r.details||''}">${r.details || '—'}</td>
+        <td><span class="badge" style="background:${sc}22;color:${sc};">${r.status}</span></td>
+        <td style="color:var(--text-muted);white-space:nowrap;">${formatDate(r.createdAt)}</td>
+        <td style="color:${r.status==='approved'?'#68d391':r.status==='rejected'?'#fc8181':'var(--text-muted)'};
+          font-style:${r.reviewNote?'normal':'italic'};">
+          ${r.reviewNote || '—'}
+        </td>
+      </tr>`;
+    }).join('');
+
+  } catch {
+    // Fallback — server connect nahi hua
+    statsEl.innerHTML = [
+      { label:'Total', val:0, color:'#63b3ed' },
+      { label:'Approved', val:0, color:'#68d391' },
+      { label:'Pending',  val:0, color:'#f6c35a' },
+    ].map(s => `
+      <div style="padding:12px;border-radius:10px;text-align:center;background:${s.color}12;border:1px solid ${s.color}33;">
+        <div style="font-size:22px;font-weight:800;color:${s.color};">${s.val}</div>
+        <div style="font-size:11px;color:var(--text-sec);margin-top:3px;">${s.label}</div>
+      </div>`).join('');
+
+    badgeEl.textContent = '0 Requests';
+    tbody.innerHTML = `
+      <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted);">
+        No requests yet
+      </td></tr>`;
+  }
+}
+
+// ── Fees ────────────────────────────────────────────────
+function renderFeesDash(p) {
+  const color = p.feeStatus==='paid'?'#68d391':p.feeStatus==='partial'?'#f6c35a':'#fc8181';
+  document.getElementById('fee-badge-dash').innerHTML = badge(p.feeStatus, color);
+  document.getElementById('fee-details-dash').innerHTML = [
+    ['Semester Fee', pkr(42000), 'paid'],
+    ['Mess Charges', pkr(6500)+'/mo', 'paid'],
+    ['Maintenance',  pkr(500)+'/sem', 'paid'],
+  ].map(([l,amt,s]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--divider);">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${l}</div>
+        <div style="font-size:10px;color:var(--text-muted);">Jan 2025</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">${amt}</div>
+        ${badge(s)}
+      </div>
+    </div>`).join('') +
+  `<div style="margin-top:12px;padding:10px;border-radius:10px;background:${color}15;border:1px solid ${color}33;text-align:center;">
+    <span style="font-size:13px;font-weight:700;color:${color};">✓ All fees cleared</span>
+  </div>`;
+}
+
+function renderFeesFull() {
+  document.getElementById('fee-summary-cards').innerHTML = [
+    {label:'Total Paid', val:'Rs 49,000', color:'#68d391'},
+    {label:'Pending',    val:'Rs 0',      color:'#f6c35a'},
+    {label:'Next Due',   val:'Jul 31',    color:'#63b3ed'},
+  ].map(s => `
+    <div class="card" style="padding:18px;border-top:2px solid ${s.color};">
+      <div style="font-size:11px;color:var(--text-sec);margin-bottom:4px;">${s.label}</div>
+      <div style="font-size:22px;font-weight:800;color:${s.color};">${s.val}</div>
+    </div>`).join('');
+
+  const feeData = [
+    ['Semester Fee','January 2025', pkr(42000),'Jan 31, 2025','paid'],
+    ['Mess Charges','January 2025', pkr(6500), 'Jan 1, 2025', 'paid'],
+    ['Maintenance', 'January 2025', pkr(500),  'Jan 31, 2025','paid'],
+    ['Semester Fee','August 2024',  pkr(42000),'Aug 31, 2024','paid'],
+    ['Mess Charges','August 2024',  pkr(6500), 'Aug 1, 2024', 'paid'],
+  ];
+  document.getElementById('fee-tbody').innerHTML = feeData.map(([type,month,amt,due,status]) => `
+    <tr>
+      <td style="font-weight:600;color:var(--text);">${type}</td>
+      <td style="color:var(--text-sec);">${month}</td>
+      <td style="font-weight:700;color:var(--text);">${amt}</td>
+      <td style="color:var(--text-sec);">${due}</td>
+      <td>${badge(status)}</td>
+      <td><button class="btn btn-sm btn-outline-blue" onclick="toast('Receipt downloaded!','success')">⬇ Download</button></td>
+    </tr>`).join('');
+}
+
+// ── Attendance ──────────────────────────────────────────
+function renderAttendanceDash(p) {
+  const pct   = p.attendance;
+  const color = pct >= 75 ? '#4fd1c5' : '#f6c35a';
+  document.getElementById('att-badge-dash').innerHTML = badge(pct+'%', color);
+  document.getElementById('att-progress-dash').innerHTML = `
+    <div class="progress"><div class="progress-bar" style="width:${pct}%;background:linear-gradient(90deg,${color},#63b3ed);"></div></div>
+    <div style="display:flex;justify-content:space-between;margin-top:5px;">
+      <span style="font-size:11px;color:var(--text-sec);">This Semester</span>
+      <span style="font-size:11px;font-weight:600;color:var(--text);">${pct} / 100 days</span>
+    </div>`;
+
+  const days  = ['M','T','W','T','F','S','S'];
+  const weeks = [
+    [1,1,1,1,1,1,0],
+    [1,1,0,1,1,1,1],
+    [1,1,1,1,0,1,0],
+    [1,1,1,1,1,0,1],
+  ];
+  const canvas = document.getElementById('attChart');
+  if (canvas) canvas.style.display = 'none';
+  let calBox = document.getElementById('att-calendar');
+  if (!calBox) {
+    calBox = document.createElement('div');
+    calBox.id = 'att-calendar';
+    canvas.parentNode.appendChild(calBox);
+  }
+  calBox.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">
+      ${days.map(d=>`<div style="text-align:center;font-size:10px;font-weight:600;color:var(--text-muted);">${d}</div>`).join('')}
+    </div>
+    ${weeks.map(week=>`
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;">
+        ${week.map(status=>`
+          <div title="${status===1?'Present':'Absent'}"
+            style="height:28px;border-radius:6px;background:${status===1?color+'33':'#fc818122'};
+              border:1px solid ${status===1?color+'66':'#fc818166'};
+              display:flex;align-items:center;justify-content:center;font-size:12px;cursor:default;transition:transform .15s;"
+            onmouseenter="this.style.transform='scale(1.15)'"
+            onmouseleave="this.style.transform='scale(1)'">${status===1?'✓':'✗'}</div>`).join('')}
+      </div>`).join('')}
+    <div style="display:flex;gap:14px;margin-top:8px;">
+      <div style="display:flex;align-items:center;gap:5px;">
+        <div style="width:12px;height:12px;border-radius:3px;background:${color}33;border:1px solid ${color}66;"></div>
+        <span style="font-size:10px;color:var(--text-sec);">Present</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <div style="width:12px;height:12px;border-radius:3px;background:#fc818122;border:1px solid #fc818166;"></div>
+        <span style="font-size:10px;color:var(--text-sec);">Absent</span>
+      </div>
+      <div style="margin-left:auto;font-size:10px;color:var(--text-muted);">Last 4 weeks</div>
+    </div>`;
+}
+
+function renderAttFull() {
+  document.getElementById('att-summary-cards').innerHTML = [
+    {label:'Total Days',val:'100',color:'#63b3ed'},
+    {label:'Present',   val:'94', color:'#68d391'},
+    {label:'Absent',    val:'6',  color:'#fc8181'},
+    {label:'Percentage',val:'94%',color:'#4fd1c5'},
+  ].map(s=>`
+    <div class="card" style="padding:18px;text-align:center;border-top:2px solid ${s.color};">
+      <div style="font-size:26px;font-weight:800;color:${s.color};">${s.val}</div>
+      <div style="font-size:11px;color:var(--text-sec);margin-top:3px;">${s.label}</div>
+    </div>`).join('');
+
+  if (chartFullInstance) { chartFullInstance.destroy(); chartFullInstance = null; }
+  chartFullInstance = new Chart(document.getElementById('attChartFull'), {
+    type:'bar',
+    data:{
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat'],
+      datasets:[
+        {label:'Present',data:[1,1,0,1,1,1],backgroundColor:'rgba(79,209,197,.7)',borderRadius:6},
+        {label:'Absent', data:[0,0,1,0,0,0],backgroundColor:'rgba(252,129,129,.6)',borderRadius:6},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'top',labels:{color:'#94a3b8',font:{size:11},usePointStyle:true}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#4a5568',font:{size:11}},border:{display:false}},
+        y:{min:0,max:1,ticks:{color:'#4a5568',font:{size:10},callback:v=>v===1?'Present':v===0?'Absent':''},border:{display:false},grid:{color:'rgba(255,255,255,.04)'}}
+      }
+    }
+  });
+
+  const days     = ['Mon Jun 2','Sun Jun 1','Sat May 31','Fri May 30','Thu May 29','Wed May 28','Tue May 27','Mon May 26'];
+  const statuses = ['present','present','absent','present','present','present','present','present'];
+  document.getElementById('att-log').innerHTML = days.map((d,i)=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--divider);">
+      <span style="font-size:12px;color:var(--text-sec);">${d}</span>
+      ${statuses[i]==='present'
+        ?'<span class="badge" style="background:#68d39122;color:#68d391;">✓ Present</span>'
+        :'<span class="badge" style="background:#fc818122;color:#fc8181;">✗ Absent</span>'}
+    </div>`).join('');
+}
+
+// ── Complaints ──────────────────────────────────────────
+async function loadComplaintsDash() {
+  let list = [];
+  try { const r = await api('/complaints'); list = (r.data || []).slice(0,3); } catch {}
+
+  if (list.length === 0) {
+    document.getElementById('complaints-dash').innerHTML = `
+      <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px;">No complaints yet</div>`;
+    return;
+  }
+
+  document.getElementById('complaints-dash').innerHTML = list.map(c=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--divider);">
+      <div style="width:8px;height:8px;border-radius:50%;background:${statusColor(c.status)};flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</div>
+        <div style="font-size:10px;color:var(--text-muted);">${c.category} · ${formatDate(c.createdAt)}</div>
+      </div>
+      ${badge(c.status)}
+    </div>`).join('');
+}
+
+async function renderComplaintsFull() {
+  let list = [];
+  try { const r = await api('/complaints'); list = r.data || []; } catch {}
+
+  const total      = list.length;
+  const pending    = list.filter(c=>c.status==='Pending').length;
+  const inProgress = list.filter(c=>c.status==='In Progress').length;
+  const resolved   = list.filter(c=>c.status==='Resolved').length;
+
+  document.getElementById('complaints-stats').innerHTML = [
+    {label:'Total',      val:total,      color:'#63b3ed'},
+    {label:'Pending',    val:pending,    color:'#f6c35a'},
+    {label:'In Progress',val:inProgress, color:'#4fd1c5'},
+    {label:'Resolved',   val:resolved,   color:'#68d391'},
+  ].map(s=>`
+    <div class="card" style="padding:14px 16px;text-align:center;border-top:2px solid ${s.color};">
+      <div style="font-size:22px;font-weight:800;color:${s.color};">${s.val}</div>
+      <div style="font-size:11px;color:var(--text-sec);margin-top:3px;">${s.label}</div>
+    </div>`).join('');
+
+  if (list.length === 0) {
+    document.getElementById('complaints-full-tbody').innerHTML = `
+      <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted);">
+        No complaints yet — click "+ New Complaint" to add one
+      </td></tr>`;
+    return;
+  }
+
+  document.getElementById('complaints-full-tbody').innerHTML = list.map((c,i)=>`
+    <tr>
+      <td style="color:var(--blue);font-weight:700;">#${i+1}</td>
+      <td style="color:var(--text);font-weight:500;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.title}</td>
+      <td>${chip(c.category)}</td>
+      <td>${badge(c.priority)}</td>
+      <td>${badge(c.status)}</td>
+      <td style="color:var(--text-muted);white-space:nowrap;">${formatDate(c.createdAt)}</td>
+    </tr>`).join('');
+}
+
+// ── Announcements ───────────────────────────────────────
+async function loadAnnouncementsDash() {
+  const FALLBACK = [
+    {title:'Hostel Day 2025', content:'Annual hostel day Feb 15th.',    priority:'high',  category:'Event',   author:'Dr. Verma',      pinned:true},
+    {title:'Fee Deadline',    content:'Last date Jan 31st.',            priority:'urgent',category:'Finance', author:'Accounts Office',pinned:true},
+    {title:'Mess Menu Change',content:'New menu effective Feb 1st.',    priority:'normal',category:'Mess',    author:'Mess Committee', pinned:false},
+  ];
+  let list = FALLBACK;
+  try { const r = await api('/announcements'); if(r.data?.length) list = r.data; } catch {}
+  window._annList = list;
+  document.getElementById('ann-dash').innerHTML = list.slice(0,3).map(a=>`
+    <div style="padding:16px 22px;border-bottom:1px solid var(--divider);">
+      <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+        ${a.pinned?'<span style="font-size:10px;font-weight:700;color:#f6c35a;">📌</span>':''}
+        ${badge((a.priority||'normal').toUpperCase(), PRI_COLORS[a.priority]||'#63b3ed')}
+        ${badge(a.category||'General', CAT_COLORS[a.category]||'#63b3ed')}
+      </div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">${a.title}</div>
+      <div style="font-size:12px;color:var(--text-sec);line-height:1.5;">${a.content}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">— ${a.author?.name||a.author||'Admin'}</div>
+    </div>`).join('');
+}
+
+function renderAnnFull() {
+  const list = window._annList || [];
+  document.getElementById('ann-full').innerHTML = list.map(a=>`
+    <div class="card" style="margin-bottom:14px;padding:20px 22px;">
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+        ${a.pinned?'<span style="font-size:10px;font-weight:700;color:#f6c35a;">📌 PINNED</span>':''}
+        ${badge((a.priority||'normal').toUpperCase(), PRI_COLORS[a.priority]||'#63b3ed')}
+        ${badge(a.category||'General', CAT_COLORS[a.category]||'#63b3ed')}
+      </div>
+      <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px;">${a.title}</div>
+      <div style="font-size:13px;color:var(--text-sec);line-height:1.6;">${a.content}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">— ${a.author?.name||a.author||'Admin'}</div>
+    </div>`).join('');
+}
+
+// ── Submit Complaint ────────────────────────────────────
+async function submitComplaint() {
+  const title = document.getElementById('c-title').value.trim();
+  const desc  = document.getElementById('c-desc').value.trim();
+  const cat   = document.getElementById('c-cat').value;
+  const pri   = document.getElementById('c-priority').value;
+  if (!title||!desc) { toast('Please fill all fields.','warning'); return; }
+  try {
+    await api('/complaints',{method:'POST',body:{title,description:desc,category:cat,priority:pri}});
+    toast('Complaint submitted successfully!');
+    document.getElementById('complaint-modal').classList.remove('open');
+    document.getElementById('c-title').value = '';
+    document.getElementById('c-desc').value  = '';
+    await loadComplaintsDash();
+    if (currentSection==='complaints') await renderComplaintsFull();
+  } catch (err) {
+    toast(err.message || 'Failed to submit complaint.', 'error');
+  }
+}
+
+// ── Submit Room Change ──────────────────────────────────
+async function submitRoomChange() {
+  const reason         = document.getElementById('room-change-reason').value;
+  const preferredBlock = document.getElementById('room-change-block').value;
+  const details        = document.getElementById('room-change-desc').value.trim();
+  if (!details) { toast('Please write additional details.','warning'); return; }
+
+  const btn = document.querySelector('[onclick="submitRoomChange()"]');
+  const originalText = btn.textContent;
+  btn.textContent = 'Submitting...';
+  btn.disabled = true;
+
+  try {
+    await api('/room-change-requests', { method:'POST', body:{ reason, preferredBlock, details } });
+    toast('Request submitted! Warden will review it.','success');
+    document.getElementById('room-change-desc').value = '';
+    btn.textContent = '✓ Request Submitted';
+    btn.style.background = '#68d39120';
+    btn.style.color      = '#68d391';
+    btn.style.border     = '1px solid #68d39140';
+    setTimeout(() => {
+      btn.textContent      = originalText;
+      btn.style.background = '';
+      btn.style.color      = '';
+      btn.style.border     = '';
+      btn.disabled         = false;
+    }, 3000);
+    // History refresh karo
+    await loadMyRoomRequests();
+  } catch {
+    toast('Server se connect nahi hua. Try again.','error');
+    btn.textContent = originalText;
+    btn.disabled    = false;
+  }
+}
+
+document.getElementById('complaint-modal').addEventListener('click', e => {
+  if (e.target===e.currentTarget) e.currentTarget.classList.remove('open');
+});
+
+init();
+</script>
+</body>
+</html>
