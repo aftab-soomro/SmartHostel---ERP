@@ -655,7 +655,7 @@
     btn.disabled  = true;
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const res = await fetch('https://smarthostel-backend-29gy.onrender.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ name, email, password, role:'admin', phone }),
@@ -711,7 +711,7 @@
     btn.disabled  = true;
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const res = await fetch('https://smarthostel-backend-29gy.onrender.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({ name, email, password, role:'warden', phone }),
@@ -746,7 +746,7 @@
     btn.disabled  = true;
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const res = await fetch('https://smarthostel-backend-29gy.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -840,7 +840,7 @@
     btn.innerHTML = '<div class="spinner"></div> Sending...';
     btn.disabled  = true;
     try {
-      const res  = await fetch('http://localhost:5000/api/auth/forgot-password', {
+      const res  = await fetch('https://smarthostel-backend-29gy.onrender.com/api/auth/forgot-password', {
         method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email }),
       });
       const data = await res.json();
@@ -866,7 +866,7 @@
     btn.innerHTML = '<div class="spinner"></div> Verifying...';
     btn.disabled  = true;
     try {
-      const res  = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const res  = await fetch('https://smarthostel-backend-29gy.onrender.com/api/auth/verify-otp', {
         method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email:_fpEmail, otp }),
       });
       const data = await res.json();
@@ -893,7 +893,7 @@
     btn.innerHTML = '<div class="spinner"></div> Resetting...';
     btn.disabled  = true;
     try {
-      const res  = await fetch('http://localhost:5000/api/auth/reset-password', {
+      const res  = await fetch('https://smarthostel-backend-29gy.onrender.com/api/auth/reset-password', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({ email:_fpEmail, otp:_fpOtp, newPassword:newPass }),
       });
@@ -951,7 +951,7 @@
     btn.disabled  = true;
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const res = await fetch('https://smarthostel-backend-29gy.onrender.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
