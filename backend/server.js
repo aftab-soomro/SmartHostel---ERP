@@ -2,6 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const cors    = require('cors');
 const connectDB = require('./config/db');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const authRouter = require('./routes/auth');
 const { usersRouter, roomsRouter, complaintsRouter } = require('./routes/main');
@@ -12,10 +15,6 @@ const { protect, authorize } = require('./middleware/auth');
 connectDB();
 
 const app = express();
-const rateLimit = require('express-rate-limit');
-const helmet = require('helmet');
-const mongoSanitize = require('express-mongo-sanitize');
-const xss = require('xss');
 
 app.use(helmet());
 app.use(cors({
@@ -25,7 +24,6 @@ app.use(cors({
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
-app.use(xss());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -47,7 +45,6 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// ── All Routes ───────────────────────────────────────────
 app.use('/api/auth',          authRouter);
 app.use('/api/users',         usersRouter);
 app.use('/api/rooms',         roomsRouter);
@@ -57,14 +54,12 @@ app.use('/api/fees',          feesRouter);
 app.use('/api/announcements', announcementsRouter);
 app.use('/api/attendance',    attendanceRouter);
 
-// ── Dashboard Stats ──────────────────────────────────────
 app.get('/api/stats', protect, async (req, res) => {
   try {
     const User      = require('./models/User');
     const Room      = require('./models/Room');
     const Complaint = require('./models/Complaint');
     const { Visitor, Fee } = require('./models/Other');
-
     const [students, rooms, complaints, visitors, fees] = await Promise.all([
       User.countDocuments({ role: 'student' }),
       Room.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
@@ -72,10 +67,8 @@ app.get('/api/stats', protect, async (req, res) => {
       Visitor.countDocuments({ status: 'inside' }),
       Fee.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
     ]);
-
     const roomMap = rooms.reduce((a, r) => ({ ...a, [r._id]: r.count }), {});
     const compMap = complaints.reduce((a, c) => ({ ...a, [c._id]: c.count }), {});
-
     res.json({
       success: true,
       data: {
@@ -98,14 +91,10 @@ app.get('/api/stats', protect, async (req, res) => {
   }
 });
 
-// ── Health Check ─────────────────────────────────────────
 app.get('/api/health', (_req, res) =>
   res.json({ status: 'OK', timestamp: new Date().toISOString(), env: process.env.NODE_ENV })
 );
 
-// ── Room Change Requests ──────────────────────────────────
-
-// Student — apni khud ki requests dekhe
 app.get('/api/room-change-requests/my', protect, async (req, res) => {
   try {
     const requests = await RoomChangeRequest.find({ student: req.user._id })
@@ -117,7 +106,6 @@ app.get('/api/room-change-requests/my', protect, async (req, res) => {
   }
 });
 
-// Student — nai request bhejo
 app.post('/api/room-change-requests', protect, async (req, res) => {
   try {
     const user = req.user;
@@ -135,7 +123,6 @@ app.post('/api/room-change-requests', protect, async (req, res) => {
   }
 });
 
-// Warden/Admin — saari requests dekho
 app.get('/api/room-change-requests', protect, authorize('admin','warden'), async (req, res) => {
   try {
     const filter = {};
@@ -150,7 +137,6 @@ app.get('/api/room-change-requests', protect, authorize('admin','warden'), async
   }
 });
 
-// Warden/Admin — approve ya reject karo
 app.put('/api/room-change-requests/:id', protect, authorize('admin','warden'), async (req, res) => {
   try {
     const { status, reviewNote } = req.body;
@@ -165,16 +151,13 @@ app.put('/api/room-change-requests/:id', protect, authorize('admin','warden'), a
   }
 });
 
-// ── 404 ── SABSE AAKHIR MEIN ─────────────────────────────
 app.use((_req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
 
-// ── Global Error Handler ─────────────────────────────────
 app.use((err, _req, res, _next) => {
   console.error(err.stack);
   res.status(500).json({ success: false, message: 'Internal Server Error' });
 });
 
-// ── Start Server ─────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
