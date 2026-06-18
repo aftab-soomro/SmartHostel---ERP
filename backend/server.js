@@ -12,13 +12,33 @@ const { protect, authorize } = require('./middleware/auth');
 connectDB();
 
 const app = express();
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
 
+app.use(helmet());
 app.use(cors({
   origin: ['http://localhost:3000', 'http://127.0.0.1:5500', 'http://localhost:5500', 'https://smarthostel-erp.netlify.app'],
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(mongoSanitize());
+app.use(xss());
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { success: false, message: 'Too many requests, please try again later' }
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Too many login attempts, try again in 15 minutes' }
+});
+app.use('/api/', limiter);
+app.use('/api/auth/login', authLimiter);
 
 if (process.env.NODE_ENV === 'development') {
   app.use((req, _res, next) => {
