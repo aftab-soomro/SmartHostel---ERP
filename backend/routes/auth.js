@@ -1,6 +1,8 @@
 // This is Auth.js
 
 const express    = require('express');
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 const router     = express.Router();
 const User       = require('../models/User');
 const { protect} = require('../middleware/auth');
