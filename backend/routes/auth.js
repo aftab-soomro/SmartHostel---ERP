@@ -1,8 +1,6 @@
 // This is Auth.js
 
 // ====== CRITICAL: DNS & Nodemailer IPv4-Only Configuration ======
-// Render.com free tier has issues with IPv6 outbound SMTP connections.
-// Setting DNS resolution order at the very top ensures it applies globally.
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 
@@ -11,92 +9,48 @@ const router     = express.Router();
 const User       = require('../models/User');
 const { protect} = require('../middleware/auth');
 const nodemailer = require('nodemailer');
-const net = require('net');
 
 const otpStore = new Map();
 
 // ====== ENVIRONMENT VARIABLE VALIDATION ======
-// Fail fast if Gmail credentials are not configured
-if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
-  console.error('❌ CRITICAL: GMAIL_USER and/or GMAIL_PASS environment variables are not set!');
-  console.error('   Forgot-password endpoint will fail. Please set these in your Render environment.');
+// Fail fast if email credentials are not configured
+if (!process.env.BREVO_SMTP_KEY) {
+  console.error('❌ CRITICAL: BREVO_SMTP_KEY environment variable is not set!');
+  console.error('   Forgot-password endpoint will fail. Please set this in your Render environment.');
+  console.error('   Get free SMTP key from: https://app.brevo.com/settings/keys/smtp');
 }
 
-// ====== CUSTOM IPv4-ONLY CONNECTION FACTORY (Most Reliable Fix) ======
-// This function creates a custom socket that FORCES IPv4 connection only.
-// It bypasses Node's default IPv6-first behavior which is breaking on Render.
-const createIpv4OnlyConnection = (options) => {
-  return new Promise((resolve, reject) => {
-    console.log(`[IPv4Connector] Creating IPv4-only connection to ${options.host}:${options.port}`);
-    
-    // Step 1: Resolve hostname to IPv4 ONLY using dns.lookup
-    dns.lookup(options.host, { family: 4 }, (err, address, family) => {
-      if (err) {
-        console.error(`[IPv4Connector] DNS lookup failed for ${options.host}:`, err.message);
-        return reject(err);
-      }
-      
-      console.log(`[IPv4Connector] Resolved ${options.host} to IPv4: ${address}`);
-      
-      // Step 2: Create socket with the resolved IPv4 address
-      const socket = net.createConnection({
-        host: address,
-        port: options.port,
-        family: 4, // Explicitly set to IPv4
-      });
-      
-      socket.on('error', (err) => {
-        console.error(`[IPv4Connector] Socket error:`, err.message);
-        reject(err);
-      });
-      
-      // Step 3: For TLS, upgrade the connection (STARTTLS)
-      if (options.secure === false && options.requireTLS !== false) {
-        socket.on('connect', () => {
-          console.log(`[IPv4Connector] Socket connected, upgrading to TLS`);
-          // Let nodemailer handle the TLS upgrade
-          resolve(socket);
-        });
-      } else {
-        resolve(socket);
-      }
-    });
-  });
-};
-
-// ====== NODEMAILER TRANSPORTER CONFIGURATION ======
-// Using createConnection for guaranteed IPv4-only behavior on Render
+// ====== BREVO NODEMAILER TRANSPORTER (Most Reliable for Render) ======
+// Brevo is specifically designed for reliable email delivery on cloud platforms like Render.
+// Free tier: 300 emails/day, no credit card required
+// Why Brevo instead of Gmail: 
+//   - Gmail SMTP on Render free tier has connectivity issues
+//   - Brevo has dedicated SMTP infrastructure for cloud deployments
+//   - No IPv6/DNS resolution issues
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
+  // Brevo SMTP endpoints (both work, but smtp-relay.brevo.com is faster)
+  host: 'smtp-relay.brevo.com',
   port: 587,
-  secure: false, // Use STARTTLS (upgrade after connect)
-  requireTLS: true, // Force TLS upgrade after connection
-  
-  // ===== CRITICAL: Custom connection factory =====
-  // This ensures ONLY IPv4 sockets are created
-  createConnection: createIpv4OnlyConnection,
-  
-  // ===== IPv4 Fallbacks =====
-  family: 4,
-  
-  // ===== Connection timeout settings =====
-  connectionTimeout: 10000,   // 10 seconds
-  socketTimeout: 15000,       // 15 seconds for socket operations
-  
+  secure: false, // Use STARTTLS
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
+    // Brevo uses API key (not email + password)
+    // You can use the API key as both user and pass
+    user: 'apikey',
+    pass: process.env.BREVO_SMTP_KEY,
   },
+  // Connection settings
+  connectionTimeout: 10000,
+  socketTimeout: 10000,
 });
 
-// ====== VERIFY TRANSPORTER CONFIGURATION ON STARTUP ======
+// ====== VERIFY TRANSPORTER ON STARTUP ======
 transporter.verify((error, success) => {
   if (error) {
     console.error('❌ Nodemailer SMTP Connection Failed:', error.message);
-    console.error('   Host: smtp.gmail.com, Port: 587');
-    console.error('   This may indicate GMAIL_USER/GMAIL_PASS are invalid or network is unreachable.');
+    console.error('   Host: smtp-relay.brevo.com, Port: 587');
+    console.error('   Check BREVO_SMTP_KEY at: https://app.brevo.com/settings/keys/smtp');
   } else {
-    console.log('✅ Nodemailer SMTP Connection Verified - Ready to send emails');
+    console.log('✅ Nodemailer SMTP Connection Verified - Ready to send emails via Brevo');
   }
 });
 
@@ -164,8 +118,8 @@ router.post('/forgot-password', async (req, res) => {
     }
 
     // ====== ENVIRONMENT VARIABLE CHECK ======
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
-      console.error('❌ [forgot-password] GMAIL credentials missing');
+    if (!process.env.BREVO_SMTP_KEY) {
+      console.error('❌ [forgot-password] BREVO_SMTP_KEY not configured');
       return res.status(500).json({
         success: false,
         message: 'Email service not configured. Contact administrator.',
@@ -189,12 +143,11 @@ router.post('/forgot-password', async (req, res) => {
 
     // ====== EMAIL SENDING WITH DETAILED ERROR LOGGING ======
     console.log(`[forgot-password] Starting email send to: ${email}`);
-    console.log(`[forgot-password] From: ${process.env.GMAIL_USER}`);
-    console.log(`[forgot-password] SMTP Host: smtp.gmail.com:587 (IPv4-only via custom lookup)`);
+    console.log(`[forgot-password] SMTP Host: smtp-relay.brevo.com:587 (Reliable, Render-optimized)`);
 
     try {
       const mailOptions = {
-        from: `"SmartHostel ERP" <${process.env.GMAIL_USER}>`,
+        from: `"SmartHostel ERP" <noreply@smarthostel.com>`,
         to: email,
         subject: 'Password Reset OTP – SmartHostel ERP',
         html: `
@@ -229,40 +182,30 @@ router.post('/forgot-password', async (req, res) => {
       const result = await Promise.race([sendMailPromise, timeoutPromise]);
 
       console.log(`✅ [forgot-password] Email sent successfully to: ${email}`);
-      console.log(`   Response ID: ${result.response}`);
-      console.log(`   Message ID: ${result.messageId}`);
+      console.log(`   Response: ${result.response}`);
 
       res.json({ success: true, message: 'OTP sent to your email' });
 
     } catch (emailError) {
       // ====== DETAILED EMAIL ERROR LOGGING ======
-      // This is CRITICAL for diagnosing Render IPv6 issues
       console.error(`❌ [forgot-password] Email sending failed for: ${email}`);
       console.error(`   Error Type: ${emailError.code || emailError.name || 'Unknown'}`);
       console.error(`   Error Message: ${emailError.message}`);
       console.error(`   Full Error:`, emailError);
 
       // Log specific error codes that help diagnose the issue
-      if (emailError.code === 'ENETUNREACH') {
-        console.error('   ↳ IPv6 Connectivity Issue: Cannot reach SMTP server');
-        console.error('   ↳ Render free tier may not support IPv6 outbound. Using IPv4-only lookup.');
-      } else if (emailError.code === 'ECONNREFUSED') {
+      if (emailError.code === 'ECONNREFUSED') {
         console.error('   ↳ Connection Refused: SMTP server rejected the connection');
-        console.error('   ↳ Check credentials: GMAIL_USER and GMAIL_PASS');
+        console.error('   ↳ Check BREVO_SMTP_KEY at https://app.brevo.com/settings/keys/smtp');
       } else if (emailError.code === 'ENOTFOUND') {
-        console.error('   ↳ DNS Resolution Failed: Cannot resolve smtp.gmail.com');
+        console.error('   ↳ DNS Resolution Failed: Cannot resolve smtp-relay.brevo.com');
         console.error('   ↳ Check internet connectivity on Render');
       } else if (emailError.code === 'ESOCKET') {
         console.error('   ↳ Socket Error: Connection lost or hung up');
-        console.error('   ↳ May indicate timeout or Render free tier resource limits');
-      } else if (emailError.message.includes('timeout')) {
+      } else if (emailError.message.includes('timeout') || emailError.code === 'ETIMEDOUT') {
         console.error('   ↳ Connection Timeout: Email send took too long');
-        console.error('   ↳ Render free tier or SMTP server may be slow');
+        console.error('   ↳ Brevo server may be slow or Render is rate-limiting');
       }
-
-      // Still delete the OTP from store to prevent multiple attempts flooding the service
-      // (Optional: keep for retry logic)
-      // otpStore.delete(email);
 
       res.status(500).json({
         success: false,
