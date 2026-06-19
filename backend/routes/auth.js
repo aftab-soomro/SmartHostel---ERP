@@ -6,14 +6,12 @@
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 
-// Also set the default address family to IPv4 process-wide
-dns.setDefaultResultOrder('ipv4first');
-
 const express    = require('express');
 const router     = express.Router();
 const User       = require('../models/User');
 const { protect} = require('../middleware/auth');
 const nodemailer = require('nodemailer');
+const net = require('net');
 
 const otpStore = new Map();
 
@@ -24,38 +22,66 @@ if (!process.env.GMAIL_USER || !process.env.GMAIL_PASS) {
   console.error('   Forgot-password endpoint will fail. Please set these in your Render environment.');
 }
 
-// ====== CUSTOM LOOKUP FUNCTION FOR IPV4-ONLY DNS RESOLUTION ======
-// This is the KEY FIX for Render's IPv6 connectivity issues.
-// Instead of allowing Node to try IPv6 first, we explicitly use IPv4 (family 4).
-// This function is passed to nodemailer and ensures ONLY IPv4 addresses are used.
-const ipv4OnlyLookup = (hostname, options, callback) => {
-  // Force IPv4 family (4) for all DNS lookups
-  dns.lookup(hostname, { family: 4, all: false }, callback);
+// ====== CUSTOM IPv4-ONLY CONNECTION FACTORY (Most Reliable Fix) ======
+// This function creates a custom socket that FORCES IPv4 connection only.
+// It bypasses Node's default IPv6-first behavior which is breaking on Render.
+const createIpv4OnlyConnection = (options) => {
+  return new Promise((resolve, reject) => {
+    console.log(`[IPv4Connector] Creating IPv4-only connection to ${options.host}:${options.port}`);
+    
+    // Step 1: Resolve hostname to IPv4 ONLY using dns.lookup
+    dns.lookup(options.host, { family: 4 }, (err, address, family) => {
+      if (err) {
+        console.error(`[IPv4Connector] DNS lookup failed for ${options.host}:`, err.message);
+        return reject(err);
+      }
+      
+      console.log(`[IPv4Connector] Resolved ${options.host} to IPv4: ${address}`);
+      
+      // Step 2: Create socket with the resolved IPv4 address
+      const socket = net.createConnection({
+        host: address,
+        port: options.port,
+        family: 4, // Explicitly set to IPv4
+      });
+      
+      socket.on('error', (err) => {
+        console.error(`[IPv4Connector] Socket error:`, err.message);
+        reject(err);
+      });
+      
+      // Step 3: For TLS, upgrade the connection (STARTTLS)
+      if (options.secure === false && options.requireTLS !== false) {
+        socket.on('connect', () => {
+          console.log(`[IPv4Connector] Socket connected, upgrading to TLS`);
+          // Let nodemailer handle the TLS upgrade
+          resolve(socket);
+        });
+      } else {
+        resolve(socket);
+      }
+    });
+  });
 };
 
 // ====== NODEMAILER TRANSPORTER CONFIGURATION ======
-// Multiple strategies to handle Render's IPv6 issues:
-// 1. Custom IPv4-only lookup function (most reliable)
-// 2. family: 4 as a fallback
-// 3. Port 587 (STARTTLS) instead of 465 (implicit TLS) for better compatibility
-// 4. connectionTimeout to catch hanging connections faster
-// 5. socketTimeout to prevent indefinite waits
+// Using createConnection for guaranteed IPv4-only behavior on Render
 const transporter = nodemailer.createTransport({
-  // Explicit SMTP host instead of service: 'gmail' for more control
   host: 'smtp.gmail.com',
   port: 587,
-  secure: false, // Use STARTTLS (upgrade after connect) instead of implicit TLS
+  secure: false, // Use STARTTLS (upgrade after connect)
+  requireTLS: true, // Force TLS upgrade after connection
   
-  // ===== IPv4-ONLY SETTINGS =====
-  // Custom lookup function: FORCES IPv4 DNS resolution on Render
-  lookup: ipv4OnlyLookup,
-  // Fallback: also set family to 4 (in case lookup is bypassed)
+  // ===== CRITICAL: Custom connection factory =====
+  // This ensures ONLY IPv4 sockets are created
+  createConnection: createIpv4OnlyConnection,
+  
+  // ===== IPv4 Fallbacks =====
   family: 4,
   
-  // ===== CONNECTION TIMEOUT SETTINGS =====
-  // Catch hanging connections faster instead of timing out after 2min+
-  connectionTimeout: 10000,   // 10 seconds to establish connection
-  socketTimeout: 10000,       // 10 seconds for socket operations
+  // ===== Connection timeout settings =====
+  connectionTimeout: 10000,   // 10 seconds
+  socketTimeout: 15000,       // 15 seconds for socket operations
   
   auth: {
     user: process.env.GMAIL_USER,
@@ -64,8 +90,6 @@ const transporter = nodemailer.createTransport({
 });
 
 // ====== VERIFY TRANSPORTER CONFIGURATION ON STARTUP ======
-// Test the transporter connection when the server starts.
-// This helps catch credential/network issues early rather than on first email send.
 transporter.verify((error, success) => {
   if (error) {
     console.error('❌ Nodemailer SMTP Connection Failed:', error.message);
